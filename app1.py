@@ -17,6 +17,7 @@ import numpy as np
 from scipy.constants import pi
 import pygfunction as gt
 import altair as alt
+import math
 from GHEtool import Borefield, FluidData, GroundData, PipeData 
 from plotly import graph_objects as go
 
@@ -38,7 +39,7 @@ class Calculator:
         self.COST_PER_METER = 600
         self.COST_HEAT_PUMP_PER_KW = 12000
         self.PAYMENT_TIME = 20
-        self.INTEREST = 2.4
+        self.INTEREST = 4.7
         
         self.ELPRICE_REGIONS = {
         'NO 1': 'Sørøst-Norge (NO1)',
@@ -237,12 +238,86 @@ class Calculator:
         self.direct_el_operation_cost = (self.dhw_demand + self.space_heating_demand) * self.elprice # kostnad direkte elektrisk
         self.geoenergy_operation_cost = (self.compressor_series + self.peak_series) * self.elprice # kostnad grunnvarme 
         self.savings_operation_cost = self.__rounding_to_int(np.sum(self.direct_el_operation_cost - self.geoenergy_operation_cost)) # besparelse
-
-        # -- nåverdi
-        number_of_months = self.PAYMENT_TIME * 12
+        self.savings_operation_cost_lifetime = self.savings_operation_cost * self.BOREHOLE_SIMULATION_YEARS
+        
+        # -- lån
+        total_number_of_months = self.PAYMENT_TIME * 12
         monthly_interest = (self.INTEREST / 100) / 12
-        instalment = self.investment_cost / ((1 - (1 / (1 + monthly_interest) ** number_of_months)) / monthly_interest)
-
+        self.loan_cost_monthly = self.__rounding_to_int(self.investment_cost / ((1 - (1 / (1 + monthly_interest) ** total_number_of_months)) / monthly_interest))
+        self.loan_savings_monthly = self.__rounding_to_int(self.savings_operation_cost_lifetime / total_number_of_months)
+        
+    def __plot_costs(self):
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        y_1 = self.savings_operation_cost * np.array(x) + (-self.investment_cost)
+        y_2 = ((self.loan_savings_monthly - self.loan_cost_monthly) * 12) * np.array(x)
+        y_3 = np.zeros(self.BOREHOLE_SIMULATION_YEARS + 1)
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y_1,
+                hoverinfo='skip',
+                mode='lines',
+                line=dict(width=1, color="#1d3c34"),
+                name=f"Direkte kjøp: {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
+                    ",", " "
+                ),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y_2,
+                hoverinfo='skip',
+                mode='lines',
+                line=dict(width=1, color="#48a23f"),
+                name=f"Lånefinansiert: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
+                    ",", " "
+                ),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y_3,
+                hoverinfo='skip',
+                mode='lines',
+                line=dict(width=1, color="#FFC358"),
+                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_3)):,} kr".replace(
+                    ",", " "
+                ),
+            )
+        )
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(legend=dict(itemsizing='constant'))
+        fig.update_layout(
+            margin=dict(l=0,r=0,b=0,t=0),
+            yaxis_title="Kroner",
+            plot_bgcolor="white",
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            barmode="stack",
+            xaxis = dict(
+                tickmode = 'array',
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                ))
+        
+        fig.update_xaxes(
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_yaxes(
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        return fig
+        
     def __plot_environmental(self):
         geoenergy_emission = self.__rounding_to_int(np.sum(self.compressor_series + self.peak_series))
         direct_el_emmision = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
@@ -318,28 +393,31 @@ class Calculator:
         else:
             combined_cop = (space_heating + dhw) / (space_heating_sum + dhw_sum)
             
-        self.COMBINED_COP = float(st.slider("Årsvarmefaktor (SCOP)", value = float(combined_cop), step = 0.1, min_value = 2.0, max_value= 5.0))
+        self.COMBINED_COP = float(st.number_input("Årsvarmefaktor (SCOP)", value = float(combined_cop), step = 0.1, min_value = 2.0, max_value= 5.0))
 
     def __adjust_elprice(self):
-        selected_el_option = st.selectbox("Strømpris", options=["Historisk strømpris: 2022", "Historisk strømpris: 2021", "Historisk strømpris: 2020", "Flat strømpris: 0.8 kr/kWh", "Flat strømpris: 1.5 kr/kWh", "Flat strømpris: 2.0 kr/kWh"], index = 1)
-        selected_year = selected_el_option.split()[2]
-        if float(selected_year) > 10:
-            df = pd.read_excel("src/csv/spotpriser.xlsx", sheet_name=selected_year)
-            spotprice_arr = df[self.ELPRICE_REGIONS_BACK[self.elprice_region]].to_numpy()/1.25
-            self.elprice = spotprice_arr
-        else:
-            self.elprice = float(selected_year)
+        self.elprice = st.number_input("Velg strømpris [kr/kWh]", min_value = 0.8, value = 1.1, max_value = 3.0, step = 0.1)
+        #selected_el_option = st.selectbox("Strømpris", options=["Historisk strømpris: 2022", "Historisk strømpris: 2021", "Historisk strømpris: 2020", "Flat strømpris: 0.8 kr/kWh", "Flat strømpris: 1.5 kr/kWh", "Flat strømpris: 2.0 kr/kWh"], index = 1)
+        #selected_year = selected_el_option.split()[2]
+        #if float(selected_year) > 10:
+        #    df = pd.read_excel("src/csv/spotpriser.xlsx", sheet_name=selected_year)
+        #    spotprice_arr = df[self.ELPRICE_REGIONS_BACK[self.elprice_region]].to_numpy()/1.25
+        #    self.elprice = spotprice_arr
+        #else:
+        #    self.elprice = float(selected_year)
              
     def __adjust_energymix(self):
-        option_list = ['Norsk', 'Norsk-europeisk', 'Europeisk']
-        selected = st.selectbox('Strømmiks', options=option_list, index = 1)
-        x = {option_list[0] : 16.2/1000, option_list[1] : 116.9/1000, option_list[2] : 123/1000}
-        self.emission_constant_electricity = x[selected]
-        self.selected_emission_constant = selected
+        #option_list = ['Norsk', 'Norsk-europeisk', 'Europeisk']
+        #selected = st.selectbox('Strømmiks', options=option_list, index = 1)
+        #x = {option_list[0] : 16.2/1000, option_list[1] : 116.9/1000, option_list[2] : 123/1000}
+        #self.emission_constant_electricity = x[selected]
+        #self.selected_emission_constant = selected
+        self.emission_constant_electricity = 19/1000
+        self.selected_emission_constant = "Norsk"
         
     def __adjust_heat_pump_size(self):
         thermal_demand = self.dhw_demand + self.space_heating_demand
-        self.heat_pump_size = st.number_input("Varmepumpestørrelse [kW]", value=int(np.max(thermal_demand)*0.8))
+        self.heat_pump_size = st.number_input("Varmepumpestørrelse [kW]", value=int(np.max(thermal_demand)*0.8), min_value = 1, max_value = math.ceil(np.max(thermal_demand)))
         
         
     def borehole_calculation(self):
@@ -472,8 +550,8 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [8760 * i for i in range(1, self.BOREHOLE_SIMULATION_YEARS)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS)]
+                tickvals = [8760 * i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
                 ))
         fig.update_xaxes(
             mirror=True,
@@ -513,7 +591,6 @@ class Calculator:
                 self.__render_svg(svg, "Varmepumpestørrelse", f"{self.heat_pump_size} kW")
             
             with st.expander("Mer om brønndybde og varmepumpestørrelse"):
-                st.write('**Innledende brønndimensjonering**')
                 st.write(""" Vi har gjort en forenklet beregning for å dimensjonere et bergvarmeanlegg med 
                 energibrønn og varmepumpe for din bolig. Dybde på energibrønn og størrelse på varmepumpe 
                 beregnes ut ifra et anslått oppvarmingsbehov for boligen din og antakelser om 
@@ -558,27 +635,36 @@ class Calculator:
                 self.__plot_environmental()
 
     def cost_results(self):
-        def __show_metrics(investment, short_term_savings, long_term_savings):
-            column_1, column_2, column_3 = st.columns(3)
+        def __show_metrics(investment, savings, investment_unit = "kr", savings_unit = "kr"):
+            column_1, column_2 = st.columns(2)
             with column_1:
-                svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg(svg, "Reduserte utgifter til oppvarming", f"{short_term_savings:,} kr/år".replace(',', ' '))
+                svg = """ <svg width="26" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="369" y="79" width="26" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-369 -79)"><path d="M25.4011 12.9974C25.4011 19.8478 19.8478 25.4011 12.9974 25.4011 6.14699 25.4011 0.593654 19.8478 0.593654 12.9974 0.593654 6.14699 6.14699 0.593654 12.9974 0.593654 19.8478 0.593654 25.4011 6.14699 25.4011 12.9974Z" stroke="#005173" stroke-width="0.757136" stroke-miterlimit="10" fill="#fff" transform="matrix(1 0 0 1.03846 369 79)"/><path d="M16.7905 6.98727 11.8101 19.0075 11.6997 19.0075 9.20954 12.9974" stroke="#005173" stroke-width="0.757136" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.03846 369 79)"/></g></svg>"""
+                self.__render_svg(svg, "Estimert pris", f"{investment:,} {investment_unit}".replace(',', ' '))
             with column_2:
                 svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg(svg, f"Samlet besparelse etter {self.BOREHOLE_SIMULATION_YEARS} år", f"{long_term_savings:,} kr".replace(',', ' '))
-            with column_3:
-                svg = """ <svg width="26" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="369" y="79" width="26" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-369 -79)"><path d="M25.4011 12.9974C25.4011 19.8478 19.8478 25.4011 12.9974 25.4011 6.14699 25.4011 0.593654 19.8478 0.593654 12.9974 0.593654 6.14699 6.14699 0.593654 12.9974 0.593654 19.8478 0.593654 25.4011 6.14699 25.4011 12.9974Z" stroke="#005173" stroke-width="0.757136" stroke-miterlimit="10" fill="#fff" transform="matrix(1 0 0 1.03846 369 79)"/><path d="M16.7905 6.98727 11.8101 19.0075 11.6997 19.0075 9.20954 12.9974" stroke="#005173" stroke-width="0.757136" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.03846 369 79)"/></g></svg>"""
-                self.__render_svg(svg, "Estimert investeringskostnad", f"{investment:,} kr".replace(',', ' '))
+                self.__render_svg(svg, f"Driftsbesparelse med bergvarme", f"{savings:,} {savings_unit}".replace(',', ' '))     
            
         with st.container():
             st.write("**Lønnsomhet**")
             tab1, tab2 = st.tabs(["Direkte kjøp", "Lånefinansiert"])
             with tab1:
-                __show_metrics(investment = self.investment_cost, short_term_savings = self.savings_operation_cost, long_term_savings = (self.savings_operation_cost * self.BOREHOLE_SIMULATION_YEARS) - self.investment_cost)
+                __show_metrics(investment = self.investment_cost, savings = self.savings_operation_cost_lifetime)
             with tab2:
-                __show_metrics(investment = 0, short_term_savings = self.savings_operation_cost, long_term_savings = (self.savings_operation_cost * self.BOREHOLE_SIMULATION_YEARS) - self.investment_cost)
+                __show_metrics(investment = self.loan_cost_monthly, savings = self.loan_savings_monthly, investment_unit = "kr/mnd", savings_unit = "kr/mnd")
+            
             with st.expander("Mer om lønnsomhet med bergvarme"):
-                st.write("hei")
+                st.write(""" 
+                         Estimert pris omfatter en komplett installasjon av et 
+                         bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. 
+                         Merk at dette er et estimat. Endelig pris fastsettes av leverandøren. 
+                         Prisen dekker ikke installasjon av vannbåren varme i boligen. """)
+
+                st.write(""" 
+                         Søylediagrammene viser årlige driftskostnader med bergvarme 
+                         sammenlignet med elektrisk oppvarming. """)
+                
+                st.plotly_chart(figure_or_data = self.__plot_costs(), use_container_width=True)
+            
             
     def streamlit_results(self):
         self.sizing_results()
