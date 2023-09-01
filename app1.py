@@ -83,6 +83,7 @@ class Calculator:
                 st.session_state.load_state = False
         if start_calculation or st.session_state.load_state:
             self.progress_bar = st.progress(0)
+            st.toast("Beregner ...", icon = "💻")
             st.session_state.load_state = True
         else:
             st.stop()
@@ -160,7 +161,7 @@ class Calculator:
                 st.stop()
             
     def __streamlit_demand_input(self):
-        demand_sum_old = int(round(np.sum(self.dhw_demand + self.space_heating_demand),-1))
+        demand_sum_old = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
         c1, c2 = st.columns(2)
         with c1:
             demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 10000, max_value = 100000)
@@ -242,15 +243,16 @@ class Calculator:
         
         # -- lån
         total_number_of_months = self.PAYMENT_TIME * 12
-        monthly_interest = (self.INTEREST / 100) / 12
-        self.loan_cost_monthly = self.__rounding_to_int(self.investment_cost / ((1 - (1 / (1 + monthly_interest) ** total_number_of_months)) / monthly_interest))
+        amortisering = self.investment_cost / total_number_of_months
+        prosentandel_renter = self.investment_cost * (self.INTEREST/100) / 12
+        self.loan_cost_monthly = self.__rounding_to_int(amortisering + prosentandel_renter)
         self.loan_savings_monthly = self.__rounding_to_int(self.savings_operation_cost_lifetime / total_number_of_months)
         
     def __plot_costs(self):
         x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
-        y_1 = self.savings_operation_cost * np.array(x) + (-self.investment_cost)
-        y_2 = ((self.loan_savings_monthly - self.loan_cost_monthly) * 12) * np.array(x)
-        y_3 = np.zeros(self.BOREHOLE_SIMULATION_YEARS + 1)
+        y_1 = np.sum(self.geoenergy_operation_cost) * np.array(x) + self.investment_cost
+        y_2 = (np.sum(self.geoenergy_operation_cost) + (self.loan_cost_monthly * 12)) * np.array(x)
+        y_3 = np.sum(self.direct_el_operation_cost) * np.array(x)
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
@@ -258,8 +260,8 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=1, color="#1d3c34"),
-                name=f"Direkte kjøp: {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
+                line=dict(width=1, color="#48a23f"),
+                name=f"Bergvarme (direkte kjøp): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
                     ",", " "
                 ),
             )
@@ -270,8 +272,8 @@ class Calculator:
                 y=y_2,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=1, color="#48a23f"),
-                name=f"Lånefinansiert: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
+                line=dict(width=1, color="#1d3c34"),
+                name=f"Bergvarme (lånefinansiert): {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
                     ",", " "
                 ),
             )
@@ -282,7 +284,7 @@ class Calculator:
                 y=y_3,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=1, color="#FFC358"),
+                line=dict(width=1, color="#880808"),
                 name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_3)):,} kr".replace(
                     ",", " "
                 ),
@@ -292,7 +294,7 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
-            yaxis_title="Kroner",
+            yaxis_title="Oppvarmingskostnader [kr]",
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             barmode="stack",
@@ -310,12 +312,14 @@ class Calculator:
             gridcolor="lightgrey",
         )
         fig.update_yaxes(
+            tickformat=",",
             mirror=True,
             ticks="outside",
             showline=True,
             linecolor="black",
             gridcolor="lightgrey",
         )
+        fig.update_layout(separators="* .*")
         return fig
         
     def __plot_environmental(self):
@@ -327,7 +331,7 @@ class Calculator:
             source = pd.DataFrame({"label" : [f'Strøm: {geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen: {(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
             c1 = alt.Chart(source).mark_arc(innerRadius=35).encode(
                 theta=alt.Theta(field="value", type="quantitative"),
-                color=alt.Color(field="label", type="nominal", scale=alt.Scale(range=['#48a23f', '#a23f47']), 
+                color=alt.Color(field="label", type="nominal", scale=alt.Scale(range=['#48a23f', '#a23f47']),
                 legend=alt.Legend(orient='top', direction='vertical', title=f'Bergvarme'))).configure_view(strokeWidth=0)
             st.altair_chart(c1, use_container_width=True)
         with col2:
@@ -342,7 +346,7 @@ class Calculator:
         with st.sidebar:
             self.__streamlit_sidebar_settings()
             self.__streamlit_adjust_input()
-        self.progress_bar.progress(66)
+        self.progress_bar.progress(33)
         # grunnvarmeberegning
         self.borehole_calculation()
         # stømsparingsberegning
@@ -360,6 +364,7 @@ class Calculator:
             self.__adjust_cop()
             self.__adjust_elprice()  
             self.__adjust_energymix()
+            self.__adjust_interest()
             
             #    st.markdown("---")
             #    st.write(f"*- Gjennomsnittlig spotpris: {round(float(np.mean(self.elprice)),2)} kr/kWh*")
@@ -396,7 +401,7 @@ class Calculator:
         self.COMBINED_COP = float(st.number_input("Årsvarmefaktor (SCOP)", value = float(combined_cop), step = 0.1, min_value = 2.0, max_value= 5.0))
 
     def __adjust_elprice(self):
-        self.elprice = st.number_input("Velg strømpris [kr/kWh]", min_value = 0.8, value = 1.1, max_value = 3.0, step = 0.1)
+        self.elprice = st.number_input("Velg strømpris [kr/kWh]", min_value = 1.0, value = 1.5, max_value = 3.0, step = 0.1)
         #selected_el_option = st.selectbox("Strømpris", options=["Historisk strømpris: 2022", "Historisk strømpris: 2021", "Historisk strømpris: 2020", "Flat strømpris: 0.8 kr/kWh", "Flat strømpris: 1.5 kr/kWh", "Flat strømpris: 2.0 kr/kWh"], index = 1)
         #selected_year = selected_el_option.split()[2]
         #if float(selected_year) > 10:
@@ -407,13 +412,14 @@ class Calculator:
         #    self.elprice = float(selected_year)
              
     def __adjust_energymix(self):
-        #option_list = ['Norsk', 'Norsk-europeisk', 'Europeisk']
-        #selected = st.selectbox('Strømmiks', options=option_list, index = 1)
-        #x = {option_list[0] : 16.2/1000, option_list[1] : 116.9/1000, option_list[2] : 123/1000}
-        #self.emission_constant_electricity = x[selected]
-        #self.selected_emission_constant = selected
-        self.emission_constant_electricity = 19/1000
-        self.selected_emission_constant = "Norsk"
+        option_list = ['Norsk', 'Norsk-europeisk', 'Europeisk']
+        selected = st.selectbox('Strømmiks', options=option_list, index = 1)
+        x = {option_list[0] : 19/1000, option_list[1] : 116.9/1000, option_list[2] : 123/1000}
+        self.emission_constant_electricity = x[selected]
+        self.selected_emission_constant = selected
+        
+    def __adjust_interest(self):
+        self.INTEREST = st.number_input("Lånerente", min_value = 0.0, value = self.INTEREST, max_value = 10.0, step = 0.1)
         
     def __adjust_heat_pump_size(self):
         thermal_demand = self.dhw_demand + self.space_heating_demand
@@ -429,7 +435,7 @@ class Calculator:
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
         ground_temperature = self.average_temperature
-        ground_temperature = 8.5
+        #ground_temperature = 8.5
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
@@ -441,13 +447,14 @@ class Calculator:
         self.borehole_depth = 350
         while self.borehole_depth >= 300:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
-            borefield.set_borefield(borefield_gt)        
+            borefield.set_borefield(borefield_gt)         
             self.borehole_depth = borefield.size(L4_sizing=True) + self.GROUNDWATER_TABLE
+            self.progress_bar.progress(66)
             self.borehole_temperature_arr = borefield.results_peak_heating
             self.number_of_boreholes = borefield.number_of_boreholes
             self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.borehole_depth * self.number_of_boreholes))
             self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.borehole_depth * self.number_of_boreholes) * 1000
-            i = i + 1 
+            i = i + 1
             
     def __render_svg(self, svg, text, result):
         """Renders the given svg string."""
@@ -471,7 +478,7 @@ class Calculator:
                 stackgroup="one",
                 fill="tonexty",
                 line=dict(width=0, color="#005173"),
-                name=f"Strøm til varmepumpe:<br>{int(round(np.sum(y_arr_1),0)):,} kWh/år | {int(round(np.max(y_arr_1),0)):,} kW".replace(
+                name=f"Strøm til varmepumpe:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
                     ",", " "
                 ),
             )
@@ -484,7 +491,7 @@ class Calculator:
                 stackgroup="one",
                 fill="tonexty",
                 line=dict(width=0, color="#48a23f"),
-                name=f"Levert fra brønner:<br>{int(round(np.sum(y_arr_2),0)):,} kWh/år | {int(round(np.max(y_arr_2),0)):,} kW".replace(
+                name=f"Levert fra brønner:<br>{self.__rounding_to_int(np.sum(y_arr_2)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_2)):,} kW".replace(
                     ",", " "
                 ),
             )
@@ -597,7 +604,7 @@ class Calculator:
                 egenskapene til berggrunnen der du bor. Varmepumpestørrelsen gjelder on/off 
                 og ikke varmepumper med inverterstyrt kompressor.""")
                 
-                st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True)
+                st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, config = {'displayModeBar': False})
                 
                 st.write( f""" Hvis uttakket av varme fra energibrønnen ikke er balansert med varmetilførselen i grunnen, 
                         vil temperaturen på bergvarmesystemet synke og energieffektiviteten minke. Det er derfor viktig at energibrønnen er tilstrekkelig dyp
@@ -607,14 +614,14 @@ class Calculator:
                 st.write(f"""De innledende beregningene viser at energibrønnen kan levere ca. {self.__rounding_to_int(self.kWh_per_meter)} kWh/m og {self.__rounding_to_int(self.W_per_meter)} W/m 
                         for at tilstrekkelig temperatur i grunnen opprettholdes gjennom anleggets levetid.""")  
                 
-                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True)
+                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False})
             
                 if self.number_of_boreholes > 1:
-                    st.info(f"Det bør være minimum 15 meter avstand mellom brønnene.")
+                    st.info(f"Det bør være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
                 
                 st.warning(""" Før du kan installere bergvarme, må entreprenøren gjøre en grundigere beregning. 
                 Den må baseres på reelt oppvarmings- og kjølebehov, en mer nøyaktig vurdering av grunnforholdene, 
-                inkludert berggrunnens termiske egenskaper, og simuleringer av temperaturen i energibrønnen. """)
+                inkludert berggrunnens termiske egenskaper, og simuleringer av temperaturen i energibrønnen. """, icon="⚠️")
         
     def environmental_results(self):
         with st.container():
@@ -642,28 +649,38 @@ class Calculator:
                 self.__render_svg(svg, "Estimert pris", f"{investment:,} {investment_unit}".replace(',', ' '))
             with column_2:
                 svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg(svg, f"Driftsbesparelse med bergvarme", f"{savings:,} {savings_unit}".replace(',', ' '))     
+                self.__render_svg(svg, f"Verdien av bergvarme", f"{savings:,} {savings_unit}".replace(',', ' ')) 
            
         with st.container():
             st.write("**Lønnsomhet**")
-            tab1, tab2 = st.tabs(["Direkte kjøp", "Lånefinansiert"])
+            tab1, tab2 = st.tabs(["Direktekjøp", "Lånefinansiert"])
             with tab1:
                 __show_metrics(investment = self.investment_cost, savings = self.savings_operation_cost_lifetime)
+                st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
+                st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💸")
             with tab2:
-                __show_metrics(investment = self.loan_cost_monthly, savings = self.loan_savings_monthly, investment_unit = "kr/mnd", savings_unit = "kr/mnd")
-            
-            with st.expander("Mer om lønnsomhet med bergvarme"):
-                st.write(""" 
-                         Estimert pris omfatter en komplett installasjon av et 
-                         bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. 
-                         Merk at dette er et estimat. Endelig pris fastsettes av leverandøren. 
-                         Prisen dekker ikke installasjon av vannbåren varme i boligen. """)
+                __show_metrics(investment = self.loan_cost_monthly, savings = self.__rounding_to_int(self.savings_operation_cost_lifetime / (12 * self.PAYMENT_TIME)), investment_unit = "kr/mnd", savings_unit = "kr/mnd")
+                st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
+                st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
+
+            with st.expander("Mer om lønnsomhet med bergvarme"):       
+                st.write("""
+                    Estimert pris omfatter en komplett installasjon av et 
+                    bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. 
+                    Merk at dette er et estimat. Endelig pris fastsettes av leverandøren. 
+                    Prisen dekker ikke installasjon av vannbåren varme i boligen. """)
 
                 st.write(""" 
-                         Søylediagrammene viser årlige driftskostnader med bergvarme 
-                         sammenlignet med elektrisk oppvarming. """)
+                         Grafene under viser kapitalkostnader for bergvarme (direkte kjøp), bergvarme (lånefinansiert) og direktevirkende el.
+                         """)
                 
-                st.plotly_chart(figure_or_data = self.__plot_costs(), use_container_width=True)
+                st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
+                En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
+
+                st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
+                av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
+                løpet av 20 år med effektiv rente på {round(self.INTEREST,2)} % """)
+                st.plotly_chart(figure_or_data = self.__plot_costs(), use_container_width=True, config = {'displayModeBar': False})
             
             
     def streamlit_results(self):
@@ -671,22 +688,58 @@ class Calculator:
         self.environmental_results()
         self.cost_results()
         
+    def streamlit_hide_fullscreen_view(self):
+        hide_img_fs = '''
+            <style>
+            button[title="View fullscreen"]{
+                visibility: hidden;}
+            </style>
+            '''
+        st.markdown(hide_img_fs, unsafe_allow_html=True)
+        
+    def novap(self):
+        column_1, column_2 = st.columns(2)
+        with column_1:
+            st.write(""" Sjekk hvilke entreprenører som kan montere varmepumpe og bore energibrønn hos deg - riktig og trygt! """)
+            st.write(""" Bruk en entreprenør godkjent av Varmepumpeforeningen. """)
+        with column_2:
+            st.write("""Vi råder deg også til å: """)
+            st.write("• Få entreprenør til å komme på befaring")
+            st.write("• Vurdere både pris og kvalitet ")
+            st.write("• Skrive kontrakt før arbeidet starter")
 
-        
-        
-        
-        
-        
+        # Til NOVAP
+        # Standard Base64 Encoding
+        data = {}
+        data['antall_borehull'] = self.number_of_boreholes
+        data['bronndybde'] = self.borehole_depth
+        data['varmepumpe'] = self.heat_pump_size
+        data['oppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
+        data['boligareal'] = self.building_area
+        data['adresse'] = self.address_name
+        json_data = json.dumps(data)      
+        encodedBytes = base64.b64encode(json_data.encode("utf-8"))
+        encodedStr = str(encodedBytes, "utf-8")
+
+        address_str = self.address_name.split(",")[0]
+        address_str_first_char = address_str[0]
+        if address_str_first_char.isdigit():
+            # gnr/bnr
+            address_str = address_str_first_char
+        else:
+            # vanlig
+            address_str = address_str.replace(" ", "+")
+
+        st.markdown(f'<a target="parent" style="background-color: #white;text-decoration: underline;color:black;font-size:2.0rem;border: solid 1px #e5e7eb; border-radius: 15px; text-align: center;padding: 16px 24px;min-height: 60px;display: inline-block;box-sizing: border-box;width: 100%;" href="https://www.varmepumpeinfo.no/forhandler?postnr={self.address_postcode}&adresse={address_str}&type=bergvarme&meta={encodedStr}">Sett i gang - finn en seriøs entreprenør</a>', unsafe_allow_html=True)       
  
     def main(self):
         self.set_streamlit_settings()
+        self.streamlit_hide_fullscreen_view()
         self.streamlit_input_container()
         self.streamlit_calculations()
         self.streamlit_results()
+        self.novap()
         
-        
-    
-    
 if __name__ == '__main__':
     calculator = Calculator()
     calculator.main()

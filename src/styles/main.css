@@ -8,6 +8,10 @@ a {
     font-weight: 600;
 }
 
+.stApp a:first-child {
+    display: none;
+}
+
 a:hover {
     color: #005173 !important;
     text-decoration: none;
