@@ -435,7 +435,10 @@ class Calculator:
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
         ground_temperature = self.average_temperature
-        ground_temperature = 8.5
+        if ground_temperature < 7:
+            ground_temperature == 7
+        elif ground_temperature > 9:
+            ground_temperature = 9
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
@@ -504,7 +507,7 @@ class Calculator:
                 stackgroup="one",
                 fill="tonexty",
                 line=dict(width=0, color="#ffdb9a"),
-                name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_2)):,} kW".replace(
+                name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
                     ",", " "
                 ),
             )
