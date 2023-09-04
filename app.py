@@ -387,7 +387,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme (direktekjøp):<br> {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
+                name=f"Bergvarme:<br> {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
