@@ -435,7 +435,7 @@ class Calculator:
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
         if self.average_temperature < 7:
-            ground_temperature == 7
+            ground_temperature = 7
         elif self.average_temperature > 9:
             ground_temperature = 9
         else:
