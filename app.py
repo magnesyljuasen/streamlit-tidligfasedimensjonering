@@ -62,7 +62,7 @@ class Calculator:
         st.set_page_config(
         page_title="Bergvarmekalkulatoren",
         page_icon="📟",
-        layout="centered",
+        layout="wide",
         initial_sidebar_state="collapsed")
         
         with open("src/styles/main.css") as f:
@@ -685,8 +685,8 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [8760 * i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                tickvals = [8760 * i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
+                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
                 ))
         fig.update_xaxes(
             mirror=True,
