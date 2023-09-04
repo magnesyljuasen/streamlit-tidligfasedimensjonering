@@ -449,7 +449,7 @@ class Calculator:
         emission_savings = self.__rounding_to_int(np.sum(self.delivered_from_wells_series))  
         col1, col2 = st.columns(2)
         with col1:
-            source = pd.DataFrame({"label" : [f'Strøm: {geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen: {(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
+            source = pd.DataFrame({"label" : [f'Strøm:<br>{geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen:<br>{(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#48a23f', '#a23f47'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
@@ -462,7 +462,7 @@ class Calculator:
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
         with col2:
-            source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
+            source = pd.DataFrame({"label" : [f'Strøm:<br>{direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#a23f47'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
