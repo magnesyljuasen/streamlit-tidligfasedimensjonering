@@ -525,7 +525,7 @@ class Calculator:
         self.COMBINED_COP = float(st.number_input("Årsvarmefaktor (SCOP)", value = float(combined_cop), step = 0.1, min_value = 2.0, max_value= 5.0))
 
     def __adjust_elprice(self):
-        self.elprice = st.number_input("Velg strømpris [kr/kWh]", min_value = 1.0, value = 1.5, max_value = 3.0, step = 0.1)
+        self.elprice = st.number_input("Velg strømpris [kr/kWh]", min_value = 1.0, value = 1.5, max_value = 5, step = 0.1)
         #selected_el_option = st.selectbox("Strømpris", options=["Historisk strømpris: 2022", "Historisk strømpris: 2021", "Historisk strømpris: 2020", "Flat strømpris: 0.8 kr/kWh", "Flat strømpris: 1.5 kr/kWh", "Flat strømpris: 2.0 kr/kWh"], index = 1)
         #selected_year = selected_el_option.split()[2]
         #if float(selected_year) > 10:
