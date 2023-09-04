@@ -62,7 +62,7 @@ class Calculator:
         st.set_page_config(
         page_title="Bergvarmekalkulatoren",
         page_icon="📟",
-        layout="wide",
+        layout="centered",
         initial_sidebar_state="collapsed")
         
         with open("src/styles/main.css") as f:
@@ -130,7 +130,7 @@ class Calculator:
             try:
                 self.address_name = selected_adr[0]
             except Exception:
-                st.warning("Fyll inn adresse")
+                st.warning("Fyll inn adresse", icon="⚠️")
                 st.stop()
             self.address_lat = float(selected_adr[1])
             self.address_long = float(selected_adr[2])
@@ -145,7 +145,7 @@ class Calculator:
     def __streamlit_area_input(self):
         c1, c2 = st.columns(2)
         with c1:
-            area = st.slider('1. Velg oppvarmet boligareal [m²]', min_value=100, max_value=500)
+            area = st.slider('1. Velg oppvarmet boligareal [m²]', min_value=100, max_value=10000)
         with c2:
             st.info("Boligarealet som tilføres varme fra boligens varmesystem")
         minimum_area, maximum_area = 100, 500
@@ -169,7 +169,7 @@ class Calculator:
         demand_sum_old = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
         c1, c2 = st.columns(2)
         with c1:
-            demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 10000, max_value = 100000)
+            demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 10000, max_value = 10000000)
         with c2:
             st.info(f"Vi estimerer at din bolig har et årlig varmebehov på ca. {demand_sum_old:,} kWh".replace(",", " "))
         if demand_sum_new == 'None' or demand_sum_new == '':
@@ -259,6 +259,7 @@ class Calculator:
 
         self.short_term_loan = self.__rounding_to_int(self.savings_operation_cost - self.loan_cost_yearly)
         self.long_term_loan = self.__rounding_to_int((self.savings_operation_cost - self.loan_cost_yearly) * self.BOREHOLE_SIMULATION_YEARS)
+        
         
     def __plot_costs(self):
         x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
@@ -543,7 +544,7 @@ class Calculator:
         self.selected_emission_constant = selected
         
     def __adjust_interest(self):
-        self.INTEREST = st.number_input("Lånerente", min_value = 0.0, value = self.INTEREST, max_value = 10.0, step = 0.1)
+        self.INTEREST = st.number_input("Lånerente [%]", min_value = 0.0, value = self.INTEREST, max_value = 10.0, step = 0.1)
         
     def __adjust_heat_pump_size(self):
         thermal_demand = self.dhw_demand + self.space_heating_demand
@@ -709,6 +710,7 @@ class Calculator:
     
     def sizing_results(self):
         st.header("Resultater for din bolig")
+        st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
         with st.container():
             st.write("**Energibrønn og varmepumpe**")
             if self.number_of_boreholes == 1:
@@ -787,6 +789,7 @@ class Calculator:
             st.write("**Lønnsomhet**")
             tab1, tab2 = st.tabs(["Direktekjøp", "Lånefinansiert"])
             with tab1:
+                # direktekjøp
                 __show_metrics(investment = self.investment_cost, short_term_savings = self.short_term_investment, long_term_savings = self.long_term_investment)
                 #st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
                 st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💸")
@@ -801,17 +804,22 @@ class Calculator:
                     st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
 
             with tab2:
-                __show_metrics(investment = 0, short_term_savings = self.short_term_loan, long_term_savings = self.long_term_loan, investment_text = "Investeringskostnad (lånefinasiert)")
-                #st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
-                st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
-                with st.expander("Mer om lønnsomhet med bergvarme"):                       
-                    st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
-                    En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
+                # lån
+                if self.short_term_loan > 0:
+                    __show_metrics(investment = 0, short_term_savings = self.short_term_loan, long_term_savings = self.long_term_loan, investment_text = "Investeringskostnad (lånefinasiert)")
+                    #st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
+                    st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
+                    with st.expander("Mer om lønnsomhet med bergvarme"):                       
+                        st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
+                        En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
 
-                    st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
-                    av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
-                    løpet av 20 år med effektiv rente på {round(self.INTEREST,2)} % """)
-                    st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                        st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
+                        av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
+                        løpet av 20 år med effektiv rente på {round(self.INTEREST,2)} % """)
+                        st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                else:
+                    st.warning("Lånefinansiering er ikke lønnsomt med oppgitte forutsetninger.", icon="⚠️")
+                    st.stop()
             
             
     def streamlit_results(self):
