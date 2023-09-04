@@ -434,11 +434,13 @@ class Calculator:
         self.compressor_series = self.heat_pump_series - self.delivered_from_wells_series
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
-        ground_temperature = self.average_temperature
-        if ground_temperature < 7:
+        if self.average_temperature < 7:
             ground_temperature == 7
-        elif ground_temperature > 9:
+        elif self.average_temperature > 9:
             ground_temperature = 9
+        else:
+            ground_temperature = self.average_temperature
+        st.write(ground_temperature)
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
