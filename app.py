@@ -127,7 +127,11 @@ class Calculator:
             placeholder = "Adresse 🏠"
         )
         if selected_adr != None:
-            self.address_name = selected_adr[0]
+            try:
+                self.address_name = selected_adr[0]
+            except Exception:
+                st.warning("Fyll inn adresse")
+                st.stop()
             self.address_lat = float(selected_adr[1])
             self.address_long = float(selected_adr[2])
             self.address_postcode = selected_adr[3]
@@ -302,8 +306,8 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
+                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
                 ))
         
         fig.update_xaxes(
@@ -355,8 +359,8 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
+                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
                 ))
         
         fig.update_xaxes(
@@ -407,8 +411,8 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
+                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
                 ))
         
         fig.update_xaxes(
