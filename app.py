@@ -458,7 +458,6 @@ class Calculator:
             )
             fig.update_layout(
                 autosize=True,
-                responsive='auto',
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
         with col2:
@@ -473,7 +472,6 @@ class Calculator:
             fig.update_traces(textinfo='none')
             fig.update_layout(
                 autosize=True,
-                responsive='auto',
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
 
