@@ -358,6 +358,7 @@ class Calculator:
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
+            autosize=True,
             margin=dict(l=0,r=0,b=0,t=0),
             yaxis_title="Oppvarmingskostnader [kr]",
             plot_bgcolor="white",
@@ -410,10 +411,10 @@ class Calculator:
                     ",", " "
                 ),
             )])
-
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
+            autosize=True,
             margin=dict(l=0,r=0,b=0,t=0),
             yaxis_title="Oppvarmingskostnader [kr]",
             plot_bgcolor="white",
