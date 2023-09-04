@@ -435,7 +435,7 @@ class Calculator:
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
         ground_temperature = self.average_temperature
-        #ground_temperature = 8.5
+        ground_temperature = 8.5
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
