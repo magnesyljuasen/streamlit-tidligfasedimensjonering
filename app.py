@@ -269,9 +269,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#48a23f"),
-                name=f"Bergvarme (direkte kjøp): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Bergvarme (direktekjøp): \n {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
         )
         fig.add_trace(
@@ -281,9 +279,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#1d3c34"),
-                name=f"Bergvarme (lånefinansiert): {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Bergvarme <br> (lånefinansiert): {self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )
         )
         fig.add_trace(
@@ -293,9 +289,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#880808"),
-                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_3)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Direkte <br> elektrisk: {self.__rounding_to_int(np.max(y_3)):,} kr".replace(",", " "),
             )
         )
         fig["data"][0]["showlegend"] = True
@@ -340,9 +334,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme (lånefinansiert): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Bergvarme (lån):<br>{self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
@@ -350,9 +342,7 @@ class Calculator:
                 y=y_2,
                 hoverinfo='skip',
                 marker_color = "#880808",
-                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Direkte elektrisk:<br>{self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
 
         fig["data"][0]["showlegend"] = True
@@ -397,9 +387,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme (direkte kjøp): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Bergvarme (direktekjøp):<br> {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
@@ -407,9 +395,7 @@ class Calculator:
                 y=y_2,
                 hoverinfo='skip',
                 marker_color = "#880808",
-                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
-                    ",", " "
-                ),
+                name=f"Direkte elektrisk:<br>{self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
@@ -449,7 +435,7 @@ class Calculator:
         emission_savings = self.__rounding_to_int(np.sum(self.delivered_from_wells_series))  
         col1, col2 = st.columns(2)
         with col1:
-            source = pd.DataFrame({"label" : [f'Strøm:<br>{geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen:<br>{(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
+            source = pd.DataFrame({"label" : [f'Strøm: {geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen: {(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#48a23f', '#a23f47'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
@@ -462,7 +448,7 @@ class Calculator:
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
         with col2:
-            source = pd.DataFrame({"label" : [f'Strøm:<br>{direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
+            source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#a23f47'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
