@@ -2,7 +2,6 @@ import streamlit as st
 from PIL import Image
 import json
 import base64
-from src.scripts.utils import open_page
 import numpy as np
 import requests
 from streamlit_searchbox import st_searchbox
@@ -21,7 +20,6 @@ import math
 from GHEtool import Borefield, FluidData, GroundData, PipeData 
 from plotly import graph_objects as go
 
-
 class Calculator:
     def __init__(self):
         self.THERMAL_CONDUCTIVITY = 3.5
@@ -30,12 +28,13 @@ class Calculator:
         self.BUILDING_TYPE = "A"
         self.BUILDING_STANDARD = "X"
         
-        self.MINIMUM_TEMPERATURE = 1
+        self.MINIMUM_TEMPERATURE = 0
         self.BOREHOLE_BURIED_DEPTH = 300
         self.BOREHOLE_RADIUS = (115/1000)/2
         self.BOREHOLE_SIMULATION_YEARS = 20
         self.EFFECT_COVERAGE = 85
 
+        self.MAXIMUM_DEPTH = 350
         self.COST_PER_METER = 600
         self.COST_HEAT_PUMP_PER_KW = 12000
         self.PAYMENT_TIME = 20
@@ -245,8 +244,15 @@ class Calculator:
         total_number_of_months = self.PAYMENT_TIME * 12
         amortisering = self.investment_cost / total_number_of_months
         prosentandel_renter = self.investment_cost * (self.INTEREST/100) / 12
-        self.loan_cost_monthly = self.__rounding_to_int(amortisering + prosentandel_renter)
-        self.loan_savings_monthly = self.__rounding_to_int(self.savings_operation_cost_lifetime / total_number_of_months)
+        self.loan_cost_monthly = amortisering + prosentandel_renter
+        self.loan_cost_yearly = self.loan_cost_monthly * 12
+
+        # -- visningsvariabler
+        self.short_term_investment = self.__rounding_to_int(self.savings_operation_cost)
+        self.long_term_investment = self.__rounding_to_int(self.savings_operation_cost_lifetime - self.investment_cost)
+
+        self.short_term_loan = self.__rounding_to_int(self.savings_operation_cost - self.loan_cost_yearly)
+        self.long_term_loan = self.__rounding_to_int((self.savings_operation_cost - self.loan_cost_yearly) * self.BOREHOLE_SIMULATION_YEARS)
         
     def __plot_costs(self):
         x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
@@ -298,6 +304,118 @@ class Calculator:
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             barmode="stack",
+            xaxis = dict(
+                tickmode = 'array',
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                ))
+        
+        fig.update_xaxes(
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_yaxes(
+            tickformat=",",
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_layout(separators="* .*")
+        return fig
+    
+    def __plot_costs_loan(self):
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        y_1 = (np.sum(self.geoenergy_operation_cost) + (self.loan_cost_monthly * 12)) * np.array(x)
+        y_2 = np.sum(self.direct_el_operation_cost) * np.array(x)
+        fig = go.Figure(data = [
+            go.Bar(
+                x=x,
+                y=y_1,
+                hoverinfo='skip',
+                marker_color = "#48a23f",
+                name=f"Bergvarme (lånefinansiert): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
+                    ",", " "
+                ),
+            )
+            , 
+            go.Bar(
+                x=x,
+                y=y_2,
+                hoverinfo='skip',
+                marker_color = "#880808",
+                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
+                    ",", " "
+                ),
+            )])
+
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(legend=dict(itemsizing='constant'))
+        fig.update_layout(
+            margin=dict(l=0,r=0,b=0,t=0),
+            yaxis_title="Oppvarmingskostnader [kr]",
+            plot_bgcolor="white",
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            xaxis = dict(
+                tickmode = 'array',
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+                ))
+        
+        fig.update_xaxes(
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_yaxes(
+            tickformat=",",
+            mirror=True,
+            ticks="outside",
+            showline=True,
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_layout(separators="* .*")
+        return fig
+    
+    def __plot_costs_investment(self):
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        y_1 = np.sum(self.geoenergy_operation_cost) * np.array(x) + self.investment_cost
+        y_2 = np.sum(self.direct_el_operation_cost) * np.array(x)
+        fig = go.Figure(data = [
+            go.Bar(
+                x=x,
+                y=y_1,
+                hoverinfo='skip',
+                marker_color = "#48a23f",
+                name=f"Bergvarme (direkte kjøp): {self.__rounding_to_int(np.max(y_1)):,} kr".replace(
+                    ",", " "
+                ),
+            )
+            , 
+            go.Bar(
+                x=x,
+                y=y_2,
+                hoverinfo='skip',
+                marker_color = "#880808",
+                name=f"Direkte elektrisk: {self.__rounding_to_int(np.max(y_2)):,} kr".replace(
+                    ",", " "
+                ),
+            )])
+
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(legend=dict(itemsizing='constant'))
+        fig.update_layout(
+            margin=dict(l=0,r=0,b=0,t=0),
+            yaxis_title="Oppvarmingskostnader [kr]",
+            plot_bgcolor="white",
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)],
@@ -440,7 +558,6 @@ class Calculator:
             ground_temperature = 9
         else:
             ground_temperature = self.average_temperature
-        st.write(ground_temperature)
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
@@ -449,8 +566,8 @@ class Calculator:
         borefield.set_max_ground_temperature(16)
         borefield.set_min_ground_temperature(self.MINIMUM_TEMPERATURE)
         i = 0
-        self.borehole_depth = 350
-        while self.borehole_depth >= 300:
+        self.borehole_depth = self.MAXIMUM_DEPTH + 1
+        while self.borehole_depth >= self.MAXIMUM_DEPTH:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
             borefield.set_borefield(borefield_gt)         
             self.borehole_depth = borefield.size(L4_sizing=True) + self.GROUNDWATER_TABLE
@@ -647,45 +764,47 @@ class Calculator:
                 self.__plot_environmental()
 
     def cost_results(self):
-        def __show_metrics(investment, savings, investment_unit = "kr", savings_unit = "kr"):
-            column_1, column_2 = st.columns(2)
+        def __show_metrics(investment, short_term_savings, long_term_savings, investment_unit = "kr", short_term_savings_unit = "kr/år", long_term_savings_unit = "kr", investment_text = "Estimert investeringskostnad"):
+            column_1, column_2, column_3 = st.columns(3)
             with column_1:
                 svg = """ <svg width="26" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="369" y="79" width="26" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-369 -79)"><path d="M25.4011 12.9974C25.4011 19.8478 19.8478 25.4011 12.9974 25.4011 6.14699 25.4011 0.593654 19.8478 0.593654 12.9974 0.593654 6.14699 6.14699 0.593654 12.9974 0.593654 19.8478 0.593654 25.4011 6.14699 25.4011 12.9974Z" stroke="#005173" stroke-width="0.757136" stroke-miterlimit="10" fill="#fff" transform="matrix(1 0 0 1.03846 369 79)"/><path d="M16.7905 6.98727 11.8101 19.0075 11.6997 19.0075 9.20954 12.9974" stroke="#005173" stroke-width="0.757136" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.03846 369 79)"/></g></svg>"""
-                self.__render_svg(svg, "Estimert pris", f"{investment:,} {investment_unit}".replace(',', ' '))
+                self.__render_svg(svg, f"{investment_text}", f"{investment:,} {investment_unit}".replace(',', ' '))
             with column_2:
                 svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg(svg, f"Verdien av bergvarme", f"{savings:,} {savings_unit}".replace(',', ' ')) 
+                self.__render_svg(svg, f"Reduserte utgifter til oppvarming", f"{short_term_savings:,} {short_term_savings_unit}".replace(',', ' ')) 
+            with column_3:
+                svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
+                self.__render_svg(svg, f"Samlet besparelse etter 20 år", f"{long_term_savings:,} {long_term_savings_unit}".replace(',', ' ')) 
            
         with st.container():
             st.write("**Lønnsomhet**")
             tab1, tab2 = st.tabs(["Direktekjøp", "Lånefinansiert"])
             with tab1:
-                __show_metrics(investment = self.investment_cost, savings = self.savings_operation_cost_lifetime)
-                st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
+                __show_metrics(investment = self.investment_cost, short_term_savings = self.short_term_investment, long_term_savings = self.long_term_investment)
+                #st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
                 st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💸")
-            with tab2:
-                __show_metrics(investment = self.loan_cost_monthly, savings = self.__rounding_to_int(self.savings_operation_cost_lifetime / (12 * self.PAYMENT_TIME)), investment_unit = "kr/mnd", savings_unit = "kr/mnd")
-                st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
-                st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
-
-            with st.expander("Mer om lønnsomhet med bergvarme"):       
-                st.write("""
-                    Estimert pris omfatter en komplett installasjon av et 
+                with st.expander("Mer om lønnsomhet med bergvarme"): 
+                    st.write("""
+                    Estimert investeringskostnad omfatter en komplett installasjon av et 
                     bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. 
                     Merk at dette er et estimat. Endelig pris fastsettes av leverandøren. 
-                    Prisen dekker ikke installasjon av vannbåren varme i boligen. """)
+                    Investeringskostnaden dekker ikke installasjon av vannbåren varme i boligen. 
+                             """)
+                    
+                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False})
 
-                st.write(""" 
-                         Grafene under viser kapitalkostnader for bergvarme (direkte kjøp), bergvarme (lånefinansiert) og direktevirkende el.
-                         """)
-                
-                st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
-                En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
+            with tab2:
+                __show_metrics(investment = 0, short_term_savings = self.short_term_loan, long_term_savings = self.long_term_loan, investment_text = "Investeringskostnad (lånefinasiert)")
+                #st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
+                st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
+                with st.expander("Mer om lønnsomhet med bergvarme"):                       
+                    st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
+                    En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
 
-                st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
-                av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
-                løpet av 20 år med effektiv rente på {round(self.INTEREST,2)} % """)
-                st.plotly_chart(figure_or_data = self.__plot_costs(), use_container_width=True, config = {'displayModeBar': False})
+                    st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
+                    av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
+                    løpet av 20 år med effektiv rente på {round(self.INTEREST,2)} % """)
+                    st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, config = {'displayModeBar': False})
             
             
     def streamlit_results(self):
@@ -720,6 +839,8 @@ class Calculator:
         data['bronndybde'] = self.borehole_depth
         data['varmepumpe'] = self.heat_pump_size
         data['oppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
+        data['varmtvannsbehov'] = self.__rounding_to_int(np.sum(self.dhw_demand))
+        data['romoppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.space_heating_demand))
         data['boligareal'] = self.building_area
         data['adresse'] = self.address_name
         json_data = json.dumps(data)      
