@@ -33,7 +33,6 @@ hr {
     margin-bottom: 5%;
 }
 
-
 /*
 .stTextInput>div>div>input {
     color: black;
@@ -41,6 +40,7 @@ hr {
     border: #1d3c34;
 }
 */
+
 
 div.input > button:first-child { 
     color: #005173;
@@ -77,6 +77,14 @@ div.stButton > button:first-child {
     width: 100%;
     will-change: transform;
   }
+
+  #root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.block-container.css-1y4p8pa.ea3mdgi4 > div:nth-child(1) > div > div.css-xajzzo.eqpbllx0 > ul > li > div.st-am.st-cd.st-ce.st-cf.st-cg > div > div:nth-child(1) > div > div:nth-child(7) > div:nth-child(1) > div:nth-child(1) > div > div > div > div > div > div > div.st-cj.st-dv.st-dx.st-dy.st-dz.st-b3.st-c5.st-fa.st-ct.st-ch.st-e8.st-fb.st-be.st-fc > div.st-fd.st-dg.st-ct.st-e4.st-e5.st-fe {
+    visibility: hidden;
+  }
+
+  #root > div:nth-child(2) > div > div > div > div > div > div > ul > li {
+    visibility: hidden;
+  }
   
   div.stButton > button:hover {
     color: white;
@@ -92,8 +100,9 @@ div.stButton > button:first-child {
   
   div.stProgress > div > div > div > div {
     background-color: #005173;
-    }
+}
 
+    
 /* */
 [data-testid="column"] {
     box-shadow: rgb(0 0 0 / 20%) 0px 2px 1px -1px, rgb(0 0 0 / 14%) 0px 1px 1px 0px, rgb(0 0 0 / 12%) 0px 1px 3px 0px;
