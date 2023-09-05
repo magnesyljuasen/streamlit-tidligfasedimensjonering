@@ -785,9 +785,12 @@ class Calculator:
                 st.write(f""" Hvis uttakket av varme fra energibrønnen ikke er balansert med varmetilførselen i grunnen, 
                         vil temperaturen på bergvarmesystemet synke og energieffektiviteten minke. Det er derfor viktig at energibrønnen er tilstrekkelig dyp
                         til å kunne balansere varmeuttaket. """)
-                
-                st.write(f"""De innledende beregningene viser at bergvarmesystemet kan levere ca. 
-                         {self.__rounding_to_int(self.kWh_per_meter)} kWh/(m ∙ år) og {self.__rounding_to_int(self.W_per_meter)} W/m for at 
+                if self.number_of_boreholes > 1:
+                    energy_well_text = "energibrønnene"
+                else:
+                    energy_well_text = "energibrønnen"
+                st.write(f"""Den innledende beregningen viser at {energy_well_text} kan levere ca. 
+                         {self.__rounding_to_int(self.kWh_per_meter)} kWh/(m∙år) og {self.__rounding_to_int(self.W_per_meter)} W/m for at 
                          positiv temperatur i grunnen opprettholdes gjennom anleggets levetid (se figur under). """)  
                 
                 st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
@@ -795,9 +798,9 @@ class Calculator:
                 if self.number_of_boreholes > 1:
                     st.info(f"Det bør være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
                 
-                st.warning(""" Før du kan installere bergvarme, må entreprenøren gjøre en grundigere beregning. 
+                st.warning("""**Før du kan installere bergvarme, må entreprenøren gjøre en grundigere beregning. 
                 Den må baseres på reelt oppvarmings- og kjølebehov, en mer nøyaktig vurdering av grunnforholdene, 
-                inkludert berggrunnens termiske egenskaper, og simuleringer av temperaturen i energibrønnen. """, icon="⚠️")
+                inkludert berggrunnens termiske egenskaper, og simuleringer av temperaturen i energibrønnen.**""", icon="⚠️")
         
     def environmental_results(self):
         with st.container():
@@ -835,9 +838,9 @@ class Calculator:
             tab1, tab2 = st.tabs(["Direktekjøp", "Lånefinansiert"])
             with tab1:
                 # direktekjøp
+                st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💰")
                 __show_metrics(investment = self.investment_cost, short_term_savings = self.short_term_investment, long_term_savings = self.long_term_investment)
                 #st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
-                st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💸")
                 with st.expander("Mer om lønnsomhet med bergvarme"): 
                     st.write(""" Estimert investeringskostnad omfatter en komplett installasjon av et 
                     bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. Denne er antatt fordelt slik: """)
@@ -854,9 +857,9 @@ class Calculator:
             with tab2:
                 # lån
                 if self.short_term_loan > 0:
+                    st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")                    
                     __show_metrics(investment = 0, short_term_savings = self.short_term_loan, long_term_savings = self.long_term_loan, investment_text = "Investeringskostnad (lånefinasiert)")
                     #st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
-                    st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")
                     with st.expander("Mer om lønnsomhet med bergvarme"):                       
                         st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
                         En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
@@ -884,15 +887,24 @@ class Calculator:
         st.markdown(hide_img_fs, unsafe_allow_html=True)
         
     def novap(self):
-        column_1, column_2 = st.columns(2)
-        with column_1:
-            st.write(""" Sjekk hvilke entreprenører som kan montere varmepumpe og bore energibrønn hos deg - riktig og trygt! """)
-            st.write(""" Bruk en entreprenør godkjent av Varmepumpeforeningen. """)
-        with column_2:
-            st.write("""Vi råder deg også til å: """)
-            st.write("• Få entreprenør til å komme på befaring")
-            st.write("• Vurdere både pris og kvalitet ")
-            st.write("• Skrive kontrakt før arbeidet starter")
+        st.header("Veien videre")
+        st.write(""" Sjekk hvilke entreprenører som kan montere varmepumpe og bore energibrønn hos deg - riktig og trygt!
+                 Bruk en entreprenør godkjent av Varmepumpeforeningen. """)
+        
+        st.write(""" Vi råder deg også til å:""")
+        st.write("- • Få entreprenør til å komme på befaring")
+        st.write("- • Vurdere både pris og kvalitet ")
+        st.write("- • Skrive kontrakt før arbeidet starter")
+        
+        #column_1, column_2 = st.columns(2)
+        #with column_1:
+        #    st.write(""" Sjekk hvilke entreprenører som kan montere varmepumpe og bore energibrønn hos deg - riktig og trygt! """)
+        #    st.write(""" Bruk en entreprenør godkjent av Varmepumpeforeningen. """)
+        #with column_2:
+        #    st.write("""Vi råder deg også til å: """)
+        #    st.write("• Få entreprenør til å komme på befaring")
+        #    st.write("• Vurdere både pris og kvalitet ")
+        #    st.write("• Skrive kontrakt før arbeidet starter")
 
         # Til NOVAP
         # Standard Base64 Encoding
@@ -905,6 +917,7 @@ class Calculator:
         data['romoppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.space_heating_demand))
         data['boligareal'] = self.building_area
         data['adresse'] = self.address_name
+        data['investeringskostnad'] = self.investment_cost
         json_data = json.dumps(data)      
         encodedBytes = base64.b64encode(json_data.encode("utf-8"))
         encodedStr = str(encodedBytes, "utf-8")
