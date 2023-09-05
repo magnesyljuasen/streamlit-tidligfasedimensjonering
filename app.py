@@ -62,7 +62,7 @@ class Calculator:
     def set_streamlit_settings(self):
         st.set_page_config(
         page_title="Bergvarmekalkulatoren",
-        page_icon="📟",
+        page_icon="♨️",
         layout="centered",
         initial_sidebar_state="collapsed")
         
