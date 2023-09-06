@@ -523,10 +523,7 @@ class Calculator:
         # stømsparingsberegning
         self.environmental_calculation()
         # kostnadsberegning
-        self.cost_calculation()
-        # ferdig
-        self.progress_bar.progress(100)
-        
+        self.cost_calculation() 
 
     def __streamlit_adjust_input(self):
         self.progress_bar.progress(33)
@@ -940,6 +937,8 @@ class Calculator:
         self.streamlit_calculations()
         self.streamlit_results()
         self.novap()
+        # ferdig
+        self.progress_bar.progress(100)
         
 if __name__ == '__main__':
     calculator = Calculator()
