@@ -790,7 +790,7 @@ class Calculator:
                          {self.__rounding_to_int(self.kWh_per_meter)} kWh/(m∙år) og {self.__rounding_to_int(self.W_per_meter)} W/m for at 
                          positiv temperatur i grunnen opprettholdes gjennom anleggets levetid (se figur under). """)  
                 
-                #st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
             
                 if self.number_of_boreholes > 1:
                     st.info(f"Det bør være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
@@ -870,9 +870,9 @@ class Calculator:
             
             
     def streamlit_results(self):
-        self.sizing_results()
         self.environmental_results()
         self.cost_results()
+        self.sizing_results()
         
     def streamlit_hide_fullscreen_view(self):
         hide_img_fs = '''
