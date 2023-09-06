@@ -91,20 +91,28 @@ class Calculator:
             st.stop()
             
     def __streamlit_calculator_input(self):
-         st.header("Bergvarmekalkulatoren")
-         st.write(f"Med bergvarmekalkulatoren kan du raskt beregne potensialet for å hente energi fra bakken til din bolig! Start med å skrive inn adresse i søkefeltet under.")
-         self.__streamlit_address_input()
-         self.__streamlit_area_input()
-         self.__streamlit_age_input()
-         self.__streamlit_waterborne_heat_input()
-         self.__streamlit_heat_system_input()
-         # temperaturdata
-         self.__get_temperature_data()
-         # strømpriser
-         self.__find_elprice_region()
-         # energibehov
-         self.__profet_calculation()
-         self.__streamlit_demand_input()
+        st.header("Bergvarmekalkulatoren")
+        st.write(f"Med bergvarmekalkulatoren kan du raskt beregne potensialet for å hente energi fra bakken til din bolig! Start med å skrive inn adresse i søkefeltet under.")
+        self.__streamlit_address_input()
+        c1, c2 = st.columns(2)
+        with c1:
+            self.__streamlit_area_input()
+        with c2:
+            self.__streamlit_age_input()
+        c1, c2 = st.columns(2)
+        with c1:
+            state = self.__streamlit_waterborne_heat_input()
+        with c2:
+            self.__streamlit_heat_system_input()
+        if state == False:
+            st.stop()
+        # temperaturdata
+        self.__get_temperature_data()
+        # strømpriser
+        self.__find_elprice_region()
+        # energibehov
+        self.__profet_calculation()
+        self.__streamlit_demand_input()
          
     
     def __streamlit_address_input(self):
@@ -146,7 +154,7 @@ class Calculator:
             st.stop()
             
     def __area_input(self):
-        number = st.text_input('1. Skriv inn oppvarmet boligareal [m²]')
+        number = st.text_input('1. Skriv inn oppvarmet boligareal [m²]', help = "Boligarealet som tilføres varme fra boligens varmesystem")
         if number.isdigit():
             number = float(number)
             if number < 100:
@@ -156,60 +164,65 @@ class Calculator:
                 st.error("Boligareal kan ikke være større enn 500 m²")
                 st.stop()
         elif number == 'None' or number == '':
-            st.stop()
+            number = 0
         else:
             st.error('Input må være et tall')
-            st.stop()
+            number = 0
         return number
     
     def __streamlit_age_input(self):
-        c1, c2 = st.columns(2)
-        with c2:
-            st.info("Bygningsstandard brukes til å anslå oppvarmingsbehovet for din bolig")
-        with c1:
-            selected_option = selectbox("Velg bygningsstandard", options = ["Eldre", "Nytt"], no_selection_label = "")
-            if selected_option == None:
-                st.stop()
-            elif selected_option == "Eldre":
-                self.BUILDING_STANDARD = "X"
-            elif selected_option == "Nytt":
-                self.BUILDING_STANDARD = "Y"
+        #c1, c2 = st.columns(2)
+        #with c2:
+        #    st.info("Bygningsstandard brukes til å anslå oppvarmingsbehovet for din bolig")
+        #with c1:
+        selected_option = selectbox("Velg bygningsstandard", options = ["Eldre", "Nytt"], no_selection_label = "", help = "Bygningsstandard brukes til å anslå oppvarmingsbehovet for din bolig")
+        if selected_option == None:
+            st.stop()
+        elif selected_option == "Eldre":
+            self.BUILDING_STANDARD = "X"
+        elif selected_option == "Nytt":
+            self.BUILDING_STANDARD = "Y"
                 
     def __streamlit_area_input(self):
-        c1, c2 = st.columns(2)
-        with c2:
-            st.info("Boligarealet som tilføres varme fra boligens varmesystem")
-        with c1:
-            self.building_area = self.__area_input()
+        #c1, c2 = st.columns(2)
+        #with c2:
+        #st.info("Boligarealet som tilføres varme fra boligens varmesystem")
+        #with c1:
+        self.building_area = self.__area_input()
+
         
     def __streamlit_heat_system_input(self):
         option_list = ['Gulvvarme', 'Radiator', 'Varmtvann']
-        c1, c2 = st.columns(2)
-        with c1:
-            if self.waterborne_heat_cost == 0:
-                text = "type"
-            else:
-                text = "ønsket"
-            selected = st.multiselect(f'1. Velg {text} vannbårent varmesystem', options=option_list)
-        with c2:
-            st.info('Type varmegiver bestemmer energieffektiviteten til systemet')
-            if len(selected) > 0:
-                self.selected_cop_option = selected
-            else:
-                st.stop()
+        #c1, c2 = st.columns(2)
+        #with c1:
+        if self.waterborne_heat_cost == 0:
+            text = "type"
+        else:
+            text = "ønsket"
+        selected = st.multiselect(f'1. Velg {text} vannbårent varmesystem', options=option_list, help = "Type varmegiver bestemmer energieffektiviteten til systemet")
+        #with c2:
+        #st.info('Type varmegiver bestemmer energieffektiviteten til systemet')
+        if len(selected) > 0:
+            self.selected_cop_option = selected
+        else:
+            st.stop()
                 
     def __streamlit_waterborne_heat_input(self):
-        c1, c2 = st.columns(2)
-        with c2:
-            st.info("Bergvarme krever at boligen har et vannbårent varmesystem")
-        with c1:
-            selected_option = selectbox("Har boligen vannbåren varme?", options = ["Ja", "Nei"], no_selection_label = "")
-            if selected_option == None:
-                st.stop()
-            elif selected_option == "Nei":
-                self.waterborne_heat_cost = self.__rounding_to_int(self.WATERBORNE_HEAT_CONSTANT * self.building_area)
-            elif selected_option == "Ja":
-                self.waterborne_heat_cost = 0                   
+        #c1, c2 = st.columns(2)
+        #with c2:
+        #st.info("Bergvarme krever at boligen har et vannbårent varmesystem")
+        #with c1:
+        selected_option = selectbox("Har boligen vannbåren varme?", options = ["Ja", "Nei"], no_selection_label = "", help = "Bergvarme krever at boligen har et vannbårent varmesystem")
+        if selected_option == None:
+            self.waterborne_heat_cost = 0
+            state = False
+        elif selected_option == "Nei":
+            self.waterborne_heat_cost = self.__rounding_to_int(self.WATERBORNE_HEAT_CONSTANT * self.building_area)
+            state = True
+        elif selected_option == "Ja":
+            self.waterborne_heat_cost = 0
+            state = True
+        return state
             
     def __streamlit_demand_input(self):
         demand_sum_old = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
