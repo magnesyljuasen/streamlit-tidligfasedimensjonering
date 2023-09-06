@@ -602,13 +602,13 @@ class Calculator:
         self.compressor_series = self.heat_pump_series - self.delivered_from_wells_series
         self.peak_series = thermal_demand - self.heat_pump_series
         # ghetool
-        if self.average_temperature < 7:
-            ground_temperature = 7
+        if self.average_temperature < 6:
+            ground_temperature = 6
         elif self.average_temperature > 9:
             ground_temperature = 9
         else:
             ground_temperature = self.average_temperature
-        data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
+        data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.03)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data)
         borefield.set_hourly_heating_load(self.delivered_from_wells_series)
@@ -620,7 +620,7 @@ class Calculator:
         while self.borehole_depth >= self.MAXIMUM_DEPTH:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
             borefield.set_borefield(borefield_gt)         
-            self.borehole_depth = borefield.size(L4_sizing=True) + self.GROUNDWATER_TABLE
+            self.borehole_depth = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
             self.progress_bar.progress(66)
             self.borehole_temperature_arr = borefield.results_peak_heating
             self.number_of_boreholes = borefield.number_of_boreholes
