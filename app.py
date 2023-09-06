@@ -752,8 +752,6 @@ class Calculator:
         return int(round(number, 0))
     
     def sizing_results(self):
-        st.header("Resultater for din bolig")
-        st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
         with st.container():
             st.write("**Energibrønn og varmepumpe**")
             if self.number_of_boreholes == 1:
@@ -870,6 +868,8 @@ class Calculator:
             
             
     def streamlit_results(self):
+        st.header("Resultater for din bolig")
+        st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
         self.environmental_results()
         self.cost_results()
         self.sizing_results()
