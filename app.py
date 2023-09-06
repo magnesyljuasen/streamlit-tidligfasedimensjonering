@@ -935,10 +935,10 @@ class Calculator:
         self.streamlit_hide_fullscreen_view()
         self.streamlit_input_container()
         self.streamlit_calculations()
-        self.streamlit_results()
-        self.novap()
         # ferdig
         self.progress_bar.progress(100)
+        self.streamlit_results()
+        self.novap()
         
 if __name__ == '__main__':
     calculator = Calculator()
