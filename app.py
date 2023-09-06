@@ -308,7 +308,7 @@ class Calculator:
         
         
     def __plot_costs(self):
-        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS)]
         y_1 = np.sum(self.geoenergy_operation_cost) * np.array(x) + self.investment_cost
         y_2 = (np.sum(self.geoenergy_operation_cost) + (self.loan_cost_monthly * 12)) * np.array(x)
         y_3 = np.sum(self.direct_el_operation_cost) * np.array(x)
@@ -353,11 +353,12 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
-                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)]
                 ))
         
         fig.update_xaxes(
+            range = [0, 30],
             mirror=True,
             ticks="outside",
             showline=True,
@@ -376,7 +377,7 @@ class Calculator:
         return fig
     
     def __plot_costs_loan(self):
-        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS)]
         y_1 = (np.sum(self.geoenergy_operation_cost) + (self.loan_cost_monthly * 12)) * np.array(x)
         y_2 = np.sum(self.direct_el_operation_cost) * np.array(x)
         fig = go.Figure(data = [
@@ -406,11 +407,12 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
-                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)]
                 ))
         
         fig.update_xaxes(
+            range = [0, 30],
             mirror=True,
             ticks="outside",
             showline=True,
@@ -429,7 +431,7 @@ class Calculator:
         return fig
     
     def __plot_costs_investment(self):
-        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1)]
+        x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS)]
         y_1 = np.sum(self.geoenergy_operation_cost) * np.array(x) + self.investment_cost
         y_2 = np.sum(self.direct_el_operation_cost) * np.array(x)
         fig = go.Figure(data = [
@@ -458,11 +460,12 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
-                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)]
                 ))
         
         fig.update_xaxes(
+            range = [0, 30],
             mirror=True,
             ticks="outside",
             showline=True,
@@ -622,11 +625,13 @@ class Calculator:
             borefield.set_borefield(borefield_gt)         
             self.borehole_depth = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
             self.progress_bar.progress(66)
-            self.borehole_temperature_arr = borefield.results_peak_heating
+            #self.borehole_temperature_arr = borefield.results_peak_heating
             self.number_of_boreholes = borefield.number_of_boreholes
             self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.borehole_depth * self.number_of_boreholes))
             self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.borehole_depth * self.number_of_boreholes) * 1000
             i = i + 1
+        borefield.size(L3_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
+        self.borehole_temperature_arr = borefield.results_peak_heating
             
     def __render_svg(self, svg, text, result):
         """Renders the given svg string."""
@@ -708,29 +713,19 @@ class Calculator:
         return fig
     
     def __plot_borehole_temperature(self):
-        y_array_1 = self.borehole_temperature_arr[-8760:]
-        y_array_2 = self.borehole_temperature_arr[8760:]
-        x_array = np.array(range(0, len(self.borehole_temperature_arr[-8760:])))
+        y_array = self.borehole_temperature_arr
+        x_array = np.array(range(0, len(self.borehole_temperature_arr)))
         fig = go.Figure()
 
         fig.add_trace(
             go.Scatter(
                 x=x_array,
-                y=y_array_1,
+                y=y_array,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=0.5, color="#1d3c34"),
+                line=dict(width=1.0, color="#1d3c34"),
             ))
-        
-        fig.add_trace(
-            go.Scatter(
-                x=x_array,
-                y=y_array_2,
-                hoverinfo='skip',
-                mode='lines',
-                line=dict(width=0.5, color="#1d3c34"),
-            ))
-        
+           
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
@@ -739,10 +734,11 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [8760 * i for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)],
-                ticktext = [f"År {i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS + 1, 2)]
+                tickvals = [12 * i for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 5)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 5)]
                 ))
         fig.update_xaxes(
+            range = [0, 12 * 30],
             mirror=True,
             ticks="outside",
             showline=True,
