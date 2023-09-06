@@ -708,19 +708,29 @@ class Calculator:
         return fig
     
     def __plot_borehole_temperature(self):
-        y_array = self.borehole_temperature_arr
-        x_array = np.array(range(0, len(self.borehole_temperature_arr)))
+        y_array_1 = self.borehole_temperature_arr[-8760:]
+        y_array_2 = self.borehole_temperature_arr[8760:]
+        x_array = np.array(range(0, len(self.borehole_temperature_arr[-8760:])))
         fig = go.Figure()
 
         fig.add_trace(
             go.Scatter(
                 x=x_array,
-                y=y_array,
+                y=y_array_1,
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=0.5, color="#1d3c34"),
-            )
-        )
+            ))
+        
+        fig.add_trace(
+            go.Scatter(
+                x=x_array,
+                y=y_array_2,
+                hoverinfo='skip',
+                mode='lines',
+                line=dict(width=0.5, color="#1d3c34"),
+            ))
+        
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0),
