@@ -37,7 +37,7 @@ class Calculator:
         self.BOREHOLE_SIMULATION_YEARS = 30
         self.EFFECT_COVERAGE = 85
 
-        self.MAXIMUM_DEPTH = 300
+        self.MAXIMUM_DEPTH = 250
         self.COST_PER_METER = 400
         self.COST_HEAT_PUMP_PER_KW = 12000
         self.PAYMENT_TIME = 30
