@@ -153,7 +153,7 @@ class Calculator:
             try:
                 self.address_name = selected_adr[0]
             except Exception:
-                st.warning("Fyll inn adresse", icon="⚠️")
+                st.warning("Fyll inn adresse på nytt", icon="⚠️")
                 st.stop()
             self.address_lat = float(selected_adr[1])
             self.address_long = float(selected_adr[2])
