@@ -345,7 +345,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#48a23f"),
-                name=f"Bergvarme (direktekjøp): \n {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
+                name=f"Bergvarme (direktekjøp): \n {self.__rounding_cost_plot_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
         )
         fig.add_trace(
@@ -355,7 +355,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#1d3c34"),
-                name=f"Bergvarme <br> (lånefinansiert): {self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
+                name=f"Bergvarme <br> (lånefinansiert): {self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )
         )
         fig.add_trace(
@@ -365,7 +365,7 @@ class Calculator:
                 hoverinfo='skip',
                 mode='lines',
                 line=dict(width=1, color="#880808"),
-                name=f"Direkte <br> elektrisk: {self.__rounding_to_int(np.max(y_3)):,} kr".replace(",", " "),
+                name=f"Direkte <br> elektrisk: {self.__rounding_cost_plot_to_int(np.max(y_3)):,} kr".replace(",", " "),
             )
         )
         fig["data"][0]["showlegend"] = True
@@ -407,7 +407,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme (lån):<br>{self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
+                name=f"Bergvarme (lån):<br>{self.__rounding_cost_plot_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
@@ -415,7 +415,7 @@ class Calculator:
                 y=y_2,
                 hoverinfo='skip',
                 marker_color = "#880808",
-                name=f"Direkte elektrisk:<br>{self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
+                name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
 
         fig["data"][0]["showlegend"] = True
@@ -457,7 +457,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme:<br> {self.__rounding_to_int(np.max(y_1)):,} kr".replace(",", " "),
+                name=f"Bergvarme:<br> {self.__rounding_cost_plot_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
@@ -465,7 +465,7 @@ class Calculator:
                 y=y_2,
                 hoverinfo='skip',
                 marker_color = "#880808",
-                name=f"Direkte elektrisk:<br>{self.__rounding_to_int(np.max(y_2)):,} kr".replace(",", " "),
+                name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
@@ -620,8 +620,8 @@ class Calculator:
         # ghetool
         if self.average_temperature < 6:
             ground_temperature = 6
-        elif self.average_temperature > 9:
-            ground_temperature = 9
+        elif self.average_temperature > 8:
+            ground_temperature = 8
         else:
             ground_temperature = self.average_temperature
         data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
@@ -762,6 +762,12 @@ class Calculator:
     def __rounding_to_int(self, number):
         return int(round(number, 0))
     
+    def __rounding_costs_to_int(self, number):
+        return int(round(number, -3))
+    
+    def __rounding_cost_plot_to_int(self, number):
+        return int(round(number, -2))
+    
     def sizing_results(self):
         with st.container():
             st.write("**Energibrønn og varmepumpe**")
@@ -831,13 +837,13 @@ class Calculator:
             column_1, column_2, column_3 = st.columns(3)
             with column_1:
                 svg = """ <svg width="26" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="369" y="79" width="26" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-369 -79)"><path d="M25.4011 12.9974C25.4011 19.8478 19.8478 25.4011 12.9974 25.4011 6.14699 25.4011 0.593654 19.8478 0.593654 12.9974 0.593654 6.14699 6.14699 0.593654 12.9974 0.593654 19.8478 0.593654 25.4011 6.14699 25.4011 12.9974Z" stroke="#005173" stroke-width="0.757136" stroke-miterlimit="10" fill="#fff" transform="matrix(1 0 0 1.03846 369 79)"/><path d="M16.7905 6.98727 11.8101 19.0075 11.6997 19.0075 9.20954 12.9974" stroke="#005173" stroke-width="0.757136" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.03846 369 79)"/></g></svg>"""
-                self.__render_svg_metric(svg, f"{investment_text}", f"{investment:,} {investment_unit}".replace(',', ' '))
+                self.__render_svg_metric(svg, f"{investment_text}", f"{self.__rounding_costs_to_int(investment):,} {investment_unit}".replace(',', ' '))
             with column_2:
                 svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg_metric(svg, f"Reduserte utgifter til oppvarming", f"{short_term_savings:,} {short_term_savings_unit}".replace(',', ' ')) 
+                self.__render_svg_metric(svg, f"Reduserte utgifter til oppvarming", f"{self.__rounding_costs_to_int(short_term_savings):,} {short_term_savings_unit}".replace(',', ' ')) 
             with column_3:
                 svg = """ <svg width="29" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="323" y="79" width="29" height="27"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-323 -79)"><path d="M102.292 91.6051C102.292 91.6051 102.831 89.8359 111.221 89.8359 120.549 89.8359 120.01 91.6051 120.01 91.6051L120.01 107.574C120.01 107.574 120.523 109.349 111.221 109.349 102.831 109.349 102.292 107.574 102.292 107.574Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 94.7128C102.292 94.7128 102.831 96.4872 111.221 96.4872 120.549 96.4872 120.01 94.7128 120.01 94.7128" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 97.9487C102.292 97.9487 102.831 99.718 111.221 99.718 120.549 99.718 120 97.9487 120 97.9487" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 101.19C102.292 101.19 102.831 102.964 111.221 102.964 120.549 102.964 120.01 101.19 120.01 101.19" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M102.292 104.385C102.292 104.385 102.831 106.154 111.221 106.154 120.549 106.154 120.01 104.385 120.01 104.385" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M120 91.6051C120 91.6051 120.513 93.3795 111.21 93.3795 102.821 93.3795 102.282 91.6051 102.282 91.6051" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 231.728 -12.3976)"/><path d="M19.0769 16.7436C19.0769 21.9407 14.8638 26.1538 9.66667 26.1538 4.46953 26.1538 0.25641 21.9407 0.25641 16.7436 0.25641 11.5465 4.46953 7.33333 9.66667 7.33333 14.8638 7.33333 19.0769 11.5464 19.0769 16.7436Z" stroke="#005173" stroke-width="0.512821" stroke-miterlimit="10" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M9.66667 11.6 11.4564 15.9231 15.1487 14.5744 14.4513 19.3231 4.88205 19.3231 4.18462 14.5744 7.87692 15.9231 9.66667 11.6Z" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1 0 0 1.02056 323 79.0234)"/><path d="M4.86667 20.3846 14.5231 20.3846" stroke="#005173" stroke-width="0.512821" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1 0 0 1.02056 323 79.0234)"/></g></svg>"""
-                self.__render_svg_metric(svg, f"Samlet besparelse etter {self.BOREHOLE_SIMULATION_YEARS} år", f"{long_term_savings:,} {long_term_savings_unit}".replace(',', ' ')) 
+                self.__render_svg_metric(svg, f"Samlet besparelse etter {self.BOREHOLE_SIMULATION_YEARS} år", f"{self.__rounding_costs_to_int(long_term_savings):,} {long_term_savings_unit}".replace(',', ' ')) 
            
         with st.container():
             st.write("**Lønnsomhet**")
@@ -852,9 +858,9 @@ class Calculator:
                     bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. Denne er antatt fordelt slik: """)
                     
                     if self.waterborne_heat_cost > 0:
-                        st.write(f"- • Vannbåren varme: {self.waterborne_heat_cost:,} kr".replace(",", " "))
-                    st.write(f"- • Energibrønn: {self.geoenergy_investment_cost:,} kr".replace(",", " "))
-                    st.write(f"- • Væske-vann-varmepumpe: {self.heatpump_cost:,} kr".replace(",", " "))
+                        st.write(f"- • Vannbåren varme: {self.__rounding_costs_to_int(self.waterborne_heat_cost):,} kr".replace(",", " "))
+                    st.write(f"- • Energibrønn: {self.__rounding_costs_to_int(self.geoenergy_investment_cost):,} kr".replace(",", " "))
+                    st.write(f"- • Væske-vann-varmepumpe: {self.__rounding_costs_to_int(self.heatpump_cost):,} kr".replace(",", " "))
                     st.write("")
                     st.write("""**Merk at dette er et estimat. Endelig pris fastsettes av leverandøren.**""")          
                           
