@@ -61,17 +61,26 @@ class Calculator:
         }
     
     def set_streamlit_settings(self):
-        if 'sidebar_state' not in st.session_state:
-            st.session_state.sidebar_state = 'collapsed'
-
         st.set_page_config(
         page_title="Bergvarmekalkulatoren",
         page_icon="♨️",
         layout="centered",
-        initial_sidebar_state=st.session_state.sidebar_state)
+        initial_sidebar_state="collapsed")
         
         with open("src/styles/main.css") as f:
             st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
+
+        st.markdown(
+            """
+            <style>
+            [data-testid="collapsedControl"] svg {
+                height: 3rem;
+                width: 3rem;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
        
     def streamlit_input_container(self):
         def __streamlit_onclick_function():
@@ -413,7 +422,7 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             autosize=True,
-            margin=dict(l=50,r=50,b=10,t=10,pad=0),
+            margin=dict(l=0,r=0,b=10,t=10,pad=0),
             yaxis_title="Oppvarmingskostnader [kr]",
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
@@ -462,7 +471,7 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             autosize=True,
-            margin=dict(l=50,r=50,b=10,t=10,pad=0),
+            margin=dict(l=0,r=0,b=10,t=10,pad=0),
             yaxis_title="Oppvarmingskostnader [kr]",
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
@@ -697,7 +706,7 @@ class Calculator:
         xaxis = dict(
                 tickmode = 'array',
                 tickvals = [0, 24 * (31), 24 * (31 + 28), 24 * (31 + 28 + 31), 24 * (31 + 28 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31)],
-                ticktext = ["1.jan", "1.feb", "1.mar", "1.apr", "1.mai", "1.jun", "1.jul", "1.aug", "1.sep", "1.okt", "1.nov", "1.des", "1.jan"]
+                ticktext = ["1.jan", "", "1.mar", "", "1.mai", "", "1.jul", "", "1.sep", "", "1.nov", "", "1.jan"]
                 ))
         fig.update_xaxes(
             range=[0, 8760],
@@ -874,10 +883,7 @@ class Calculator:
         self.sizing_results()
         self.environmental_results()
         self.cost_results()
-        #st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
-        if st.button('Endre forutsetningene for beregningene?'):
-            st.session_state.sidebar_state = "expanded"
-            st.experimental_rerun()
+        st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
         
     def streamlit_hide_fullscreen_view(self):
         hide_img_fs = '''
