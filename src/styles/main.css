@@ -1,19 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400&display=swap');
-			html, body, [class*="css"]  {
-			font-family: 'Lato', sans-serif;}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap');
+
+
+* {font-family: 'Montserrat';}
 
 a {
     text-decoration: none;
-    color: #383838 !important;
-    font-weight: 600;
-}
-
-.stApp a:first-child {
-    display: none;
+    color: #1d3c34 !important;
+    font-weight: 800;
 }
 
 a:hover {
-    color: #005173 !important;
+    color: #1d3c34 !important;
     text-decoration: none;
 }
 
@@ -23,15 +20,15 @@ ul {list-style-type: none;}
 ul.streamlit-expander {
     background-color: transparent;
     border-radius: 25px;
-    border: 0.05px solid #005173;
+    border: 0.05px solid #1d3c34;
     padding: 5px;
 }
-
 
 hr {
     margin-top: 0px;
     margin-bottom: 5%;
 }
+
 
 /*
 .stTextInput>div>div>input {
@@ -41,15 +38,14 @@ hr {
 }
 */
 
-
 div.input > button:first-child { 
-    color: #005173;
+    color: #1d3c34;
     }
 
 /* CSS */
 div.stButton > button:first-child {
     color: white;
-    background-color: #005173;
+    background-color: #1d3c34;
     opacity: 1;
     border: none;
     transition-duration: 0.4s;
@@ -77,26 +73,10 @@ div.stButton > button:first-child {
     width: 100%;
     will-change: transform;
   }
-
-  .stAlert>div{
-    background-color: white;
-    color : #383838;
-}
-
-  #root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.block-container.css-1y4p8pa.ea3mdgi4 > div:nth-child(1) > div > div.css-xajzzo.eqpbllx0 > ul > li > div.st-am.st-cd.st-ce.st-cf.st-cg > div > div:nth-child(1) > div > div:nth-child(7) > div:nth-child(1) > div:nth-child(1) > div > div > div > div > div > div > div.st-cj.st-dv.st-dx.st-dy.st-dz.st-b3.st-c5.st-fa.st-ct.st-ch.st-e8.st-fb.st-be.st-fc > div.st-fd.st-dg.st-ct.st-e4.st-e5.st-fe {
-    visibility: hidden;
-  }
-
-  #root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.block-container.css-1y4p8pa.ea3mdgi4 > div:nth-child(1) > div > div.css-xajzzo.eqpbllx0 > ul > li > div.st-am.st-cd.st-ce.st-cf.st-cg > div > div:nth-child(1) > div > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div > div > div > div > div > div > div.st-cj.st-cu.st-db.st-dc.st-dd.st-b3.st-c5.st-f9.st-cv.st-ch.st-dr.st-fa.st-be.st-fb > div.st-fc.st-dm.st-cv.st-dn.st-do.st-fd {
-    visibility: hidden;
-  }
   
-  #root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.block-container.css-1y4p8pa.ea3mdgi4 > div:nth-child(1) > div > div.css-xajzzo.eqpbllx0 > ul > li > div.st-am.st-cd.st-ce.st-cf.st-cg > div > div:nth-child(1) > div > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div > div > div > div > div > div > div.st-cj.st-dr.st-dt.st-du.st-dv.st-b3.st-c5.st-f9.st-ct.st-ch.st-e4.st-fa.st-be.st-fb > div.st-fc.st-dg.st-ct.st-e0.st-e1.st-fd {
-    visibility: hidden;
-  }
   div.stButton > button:hover {
     color: white;
-    background-color: #005173;
+    background-color: #48a23f;
     box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
     transform: translateY(-2px);
   }
@@ -107,16 +87,16 @@ div.stButton > button:first-child {
   }
   
   div.stProgress > div > div > div > div {
-    background-color: #005173;
-}
+    background-color: #1d3c34;
+    }
 
-    
 /* */
 [data-testid="column"] {
     box-shadow: rgb(0 0 0 / 20%) 0px 2px 1px -1px, rgb(0 0 0 / 14%) 0px 1px 1px 0px, rgb(0 0 0 / 12%) 0px 1px 3px 0px;
     border-radius: 15px;
     padding: 2.5% 2.5% 2.5% 2.5%;
     text-align: center;
+    min-height: 100px;
 } 
 
 
@@ -124,7 +104,7 @@ div.stButton > button:first-child {
 [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
     padding: 30px;
     border-radius: 25px;
-    border: 1px groove #005173;
+    border: 1px groove #1d3c34;
 }
 
 MainMenu {visibility: hidden;}
@@ -140,7 +120,7 @@ footer:hover,  footer:active {
 }
 
 footer:after {
-    content:"En tjeneste levert av Asplan Viak og Norsk Varmepumpeforening (NOVAP)"; 
+    content:"En tjeneste levert av Asplan Viak"; 
     visibility: visible;
     display: block;
     position: relative;
@@ -148,7 +128,6 @@ footer:after {
     top: 2px;
     color: black;
 }
-
 
 
 

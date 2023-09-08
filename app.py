@@ -22,7 +22,6 @@ from plotly import graph_objects as go
 import plotly.express as px
 import datetime
 
-
 class Calculator:
     def __init__(self):
         self.THERMAL_CONDUCTIVITY = 3.5
@@ -43,6 +42,7 @@ class Calculator:
         self.PAYMENT_TIME = 30
         self.INTEREST = 3.0
         self.WATERBORNE_HEAT_CONSTANT = 1300
+        self.waterborne_heat_cost = 0
         
         self.ELPRICE_REGIONS = {
         'NO 1': 'Sørøst-Norge (NO1)',
@@ -62,10 +62,10 @@ class Calculator:
     
     def set_streamlit_settings(self):
         st.set_page_config(
-        page_title="Bergvarmekalkulatoren",
+        page_title="Tidligfasedimensjonering",
         page_icon="♨️",
         layout="centered",
-        initial_sidebar_state="collapsed")
+        initial_sidebar_state="expanded")
         
         with open("src/styles/main.css") as f:
             st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
@@ -92,7 +92,7 @@ class Calculator:
             # -- Input content
             self.__streamlit_calculator_input()
             # -- Input content
-            start_calculation = st.button("Start kalkulator for min bolig", on_click=__streamlit_onclick_function)
+            start_calculation = st.button("Start kalkulator for bygget", on_click=__streamlit_onclick_function)
             if 'load_state' not in st.session_state:
                 st.session_state.load_state = False
         if start_calculation or st.session_state.load_state:
@@ -103,28 +103,52 @@ class Calculator:
             st.stop()
             
     def __streamlit_calculator_input(self):
-        st.header("Bergvarmekalkulatoren")
-        st.write(f"Med bergvarmekalkulatoren kan du raskt beregne potensialet for å hente energi fra bakken til din bolig! Start med å skrive inn adresse i søkefeltet under.")
+        st.header("Tidligfasedimensjonering")
+        st.write(f"Beregn potensialet for å hente energi fra bakken til ditt bygg! Start med å skrive inn adresse i søkefeltet under.")
         self.__streamlit_address_input()
-        c1, c2 = st.columns(2)
-        with c1:
-            self.__streamlit_area_input()
-        with c2:
-            self.__streamlit_age_input()
-        c1, c2 = st.columns(2)
-        with c1:
-            state = self.__streamlit_waterborne_heat_input()
-        with c2:
+        self.__streamlit_profet_or_not_input()
+        if self.CUSTOM_INPUT == False:
+            c1, c2 = st.columns(2)
+            with c1:
+                self.__streamlit_area_input()
+            with c2:
+                self.__streamlit_age_input()
+            #c1, c2 = st.columns(2)
+            #with c1:
+            #    state = self.__streamlit_waterborne_heat_input()
+            #with c2:
             self.__streamlit_heat_system_input()
-        if state == False:
-            st.stop()
-        # temperaturdata
+            #if state == False:
+            #    st.stop()
+            # temperaturdata
+            self.__get_temperature_data()
+            # strømpriser
+            self.__find_elprice_region()
+            # energibehov
+            self.__profet_calculation()
         self.__get_temperature_data()
-        # strømpriser
         self.__find_elprice_region()
-        # energibehov
-        self.__profet_calculation()
+        self.__streamlit_heat_system_input()
         self.__streamlit_demand_input()
+
+
+    def __streamlit_profet_or_not_input(self):
+        selected_option = selectbox("Hvordan vil du laste opp energibehov?", options = ["PROFet", "Last opp timeserie [kW]"], no_selection_label = "")
+        if selected_option == None:
+            st.stop()
+        elif selected_option == "Last opp timeserie [kW]":
+            self.CUSTOM_INPUT = True
+            uploaded_file = st.file_uploader("Last opp varmebehov (excel) [kW]")
+            if uploaded_file:
+                df = pd.read_excel(uploaded_file, header = None)
+                df[0]=df[0].replace(',','.',regex=True).astype(float)
+                demand_array = df.iloc[:,0].to_numpy()
+                self.dhw_demand = demand_array * 0.1
+                self.space_heating_demand = demand_array * 0.9
+            else:
+                st.stop()
+        elif selected_option == "PROFet":
+            self.CUSTOM_INPUT = False
          
     
     def __streamlit_address_input(self):
@@ -160,21 +184,15 @@ class Calculator:
             self.address_postcode = selected_adr[3]
         else:
             #st_lottie("src/csv/house.json")
-            #image = Image.open('src/data/figures/Ordinary day-amico.png')
-            image = Image.open("src/data/figures/nylogo.png")
+            image = Image.open('src/data/figures/Ordinary day-amico.png')
+            #image = Image.open("src/data/figures/nylogo.png")
             st.image(image)
             st.stop()
             
     def __area_input(self):
-        number = st.text_input('1. Skriv inn oppvarmet boligareal [m²]', help = "Boligarealet som tilføres varme fra boligens varmesystem")
+        number = st.text_input('Oppvarmet bygningsareal [m²]', help = "bygningsarealet som tilføres varme fra byggens varmesystem")
         if number.isdigit():
             number = float(number)
-            if number < 100:
-                st.error("Boligareal kan ikke være mindre enn 100 m²")
-                st.stop()
-            elif number > 500:
-                st.error("Boligareal kan ikke være større enn 500 m²")
-                st.stop()
         elif number == 'None' or number == '':
             number = 0
         else:
@@ -185,20 +203,22 @@ class Calculator:
     def __streamlit_age_input(self):
         #c1, c2 = st.columns(2)
         #with c2:
-        #    st.info("Bygningsstandard brukes til å anslå oppvarmingsbehovet for din bolig")
+        #    st.info("Bygningsstandard brukes til å anslå oppvarmingsbehovet for ditt bygg")
         #with c1:
-        selected_option = selectbox("Velg bygningsstandard", options = ["Eldre", "Nytt"], no_selection_label = "", help = "Bygningsstandard brukes til å anslå oppvarmingsbehovet for din bolig")
+        selected_option = selectbox("Velg bygningsstandard", options = ["Eldre", "TEK10/TEK17", "Passivhus"], no_selection_label = "", help = "Bygningsstandard brukes til å anslå oppvarmingsbehovet for ditt bygg")
         if selected_option == None:
             st.stop()
         elif selected_option == "Eldre":
             self.BUILDING_STANDARD = "X"
-        elif selected_option == "Nytt":
+        elif selected_option == "TEK10/TEK17":
             self.BUILDING_STANDARD = "Y"
+        elif selected_option == "Passivhus":
+            self.BUILDING_STANDARD = "Z"
                 
     def __streamlit_area_input(self):
         #c1, c2 = st.columns(2)
         #with c2:
-        #st.info("Boligarealet som tilføres varme fra boligens varmesystem")
+        #st.info("bygningsarealet som tilføres varme fra byggens varmesystem")
         #with c1:
         self.building_area = self.__area_input()
 
@@ -207,11 +227,11 @@ class Calculator:
         option_list = ['Gulvvarme', 'Radiator', 'Varmtvann']
         #c1, c2 = st.columns(2)
         #with c1:
-        if self.waterborne_heat_cost == 0:
-            text = "type"
-        else:
-            text = "ønsket"
-        selected = st.multiselect(f'1. Velg {text} vannbårent varmesystem', options=option_list, help = "Type varmegiver bestemmer energieffektiviteten til systemet")
+        #if self.waterborne_heat_cost == 0:
+        #    text = "type"
+        #else:
+        #    text = "ønsket"
+        selected = st.multiselect(f'Type vannbårent varmesystem (COP)', options=option_list, help = "Type varmegiver bestemmer energieffektiviteten til systemet")
         #with c2:
         #st.info('Type varmegiver bestemmer energieffektiviteten til systemet')
         if len(selected) > 0:
@@ -222,9 +242,9 @@ class Calculator:
     def __streamlit_waterborne_heat_input(self):
         #c1, c2 = st.columns(2)
         #with c2:
-        #st.info("Bergvarme krever at boligen har et vannbårent varmesystem")
+        #st.info("Bergvarme krever at byggen har et vannbårent varmesystem")
         #with c1:
-        selected_option = selectbox("Har boligen vannbåren varme?", options = ["Ja", "Nei"], no_selection_label = "", help = "Bergvarme krever at boligen har et vannbårent varmesystem")
+        selected_option = selectbox("Har byggen vannbåren varme?", options = ["Ja", "Nei"], no_selection_label = "", help = "Bergvarme krever at byggen har et vannbårent varmesystem")
         if selected_option == None:
             self.waterborne_heat_cost = 0
             state = False
@@ -238,11 +258,10 @@ class Calculator:
             
     def __streamlit_demand_input(self):
         demand_sum_old = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
-        c1, c2 = st.columns(2)
-        with c1:
-            demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 15000, max_value = 100000)
-        with c2:
-            st.info(f"Vi estimerer at din bolig har et årlig varmebehov på ca. {demand_sum_old:,} kWh".replace(",", " "))
+        #c1, c2 = st.columns(2)
+        #with c1:
+        demand_sum_new = st.number_input('Hva er byggets årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000)
+        #with c2:
         if demand_sum_new == 'None' or demand_sum_new == '':
             demand_sum_new = ''
             st.stop()
@@ -293,10 +312,10 @@ class Calculator:
         self.electric_demand = self.building_area * np.array(electric_demand_series)
     
     def __streamlit_sidebar_settings(self):
-        image = Image.open("src/data/figures/bergvarmekalkulatoren_logo_blå.png")
-        st.image(image)
+        #image = Image.open("src/data/figures/bergvarmekalkulatoren_logo_blå.png")
+        #st.image(image)
         st.header("Forutsetninger")
-        st.write("Her kan du justere forutsetningene som ligger til grunn for beregningene.")
+        #st.write("Her kan du justere forutsetningene som ligger til grunn for beregningene.")
 
     def environmental_calculation(self):
         self.geoenergy_emission_series = (self.compressor_series + self.peak_series) * self.emission_constant_electricity
@@ -457,7 +476,7 @@ class Calculator:
                 y=y_1,
                 hoverinfo='skip',
                 marker_color = "#48a23f",
-                name=f"Bergvarme:<br> {self.__rounding_cost_plot_to_int(np.max(y_1)):,} kr".replace(",", " "),
+                name=f"Bergvarme:<br>{self.__rounding_cost_plot_to_int(np.max(y_1)):,} kr".replace(",", " "),
             )
             , 
             go.Bar(
@@ -510,10 +529,8 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             legend_title_text = "Bergvarme"
             )
-            fig.update_layout(
-                autosize=True,
-            )
-            st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+
+            st.plotly_chart(figure_or_data = fig, use_container_width=True, )
         with col2:
             source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#a23f47'], hole = 0.4)
@@ -527,7 +544,7 @@ class Calculator:
             fig.update_layout(
                 autosize=True,
             )
-            st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+            st.plotly_chart(figure_or_data = fig, use_container_width=True, )
 
     def streamlit_calculations(self):
         with st.sidebar:
@@ -549,12 +566,31 @@ class Calculator:
             self.__adjust_elprice()  
             self.__adjust_energymix()
             self.__adjust_interest()
+            self.__adjust_parameters()
             
             #    st.markdown("---")
             #    st.write(f"*- Gjennomsnittlig spotpris: {round(float(np.mean(self.elprice)),2)} kr/kWh*")
             #    st.write(f"*- Utslippsfaktor: {(self.energymix)*1000} g CO₂e/kWh*")
                                
             st.form_submit_button('Oppdater')
+
+    def __adjust_parameters(self):
+        self.THERMAL_CONDUCTIVITY = st.number_input("Effektiv varmeledningsevne [W/(m∙K)]", value = 3.5, step = 0.1)
+        self.GROUNDWATER_TABLE = st.number_input("Grunnvannstand [m]", value = 5, step = 1)
+        self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
+        
+        self.MINIMUM_TEMPERATURE = st.number_input("Minimumstemperatur (dimensjonering) [°C]", value = 0, step = 1)
+        self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 30, step = 1)
+        self.EFFECT_COVERAGE = st.number_input("Effektdekningsgrad [%]", value = 85, step = 5)
+
+        self.GROUND_TEMPERATURE = st.number_input("Uforstyrret temperatur (terrengnivå) [°C]", value = self.average_temperature)
+        self.BOREHOLE_RESISTANCE = st.number_input("Borehullsmotstand [(m∙K)/W]", value = 0.10)
+
+        self.MAXIMUM_DEPTH = 300
+        self.COST_PER_METER = 400
+        self.COST_HEAT_PUMP_PER_KW = 12000
+        self.PAYMENT_TIME = 30
+        self.INTEREST = 3.0
                 
     def __adjust_cop(self):
         space_heating_sum = np.sum(self.space_heating_demand)
@@ -617,14 +653,8 @@ class Calculator:
         self.delivered_from_wells_series = self.heat_pump_series - self.heat_pump_series / self.COMBINED_COP
         self.compressor_series = self.heat_pump_series - self.delivered_from_wells_series
         self.peak_series = thermal_demand - self.heat_pump_series
-        # ghetool
-        if self.average_temperature < 6:
-            ground_temperature = 6
-        elif self.average_temperature > 8:
-            ground_temperature = 8
-        else:
-            ground_temperature = self.average_temperature
-        data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = ground_temperature, R_b = 0.10, flux = 0.04)
+
+        data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = self.GROUND_TEMPERATURE, R_b = self.BOREHOLE_RESISTANCE, flux = 0.04)
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data) 
         borefield.set_hourly_heating_load(heating_load = self.delivered_from_wells_series)
@@ -638,13 +668,11 @@ class Calculator:
             borefield.set_borefield(borefield_gt)         
             self.borehole_depth = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
             self.progress_bar.progress(66)
-            #self.borehole_temperature_arr = borefield.results_peak_heating
+            self.borehole_temperature_arr = borefield.results_peak_heating
             self.number_of_boreholes = borefield.number_of_boreholes
             self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.borehole_depth * self.number_of_boreholes))
             self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.borehole_depth * self.number_of_boreholes) * 1000
             i = i + 1
-        borefield.size(L3_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
-        self.borehole_temperature_arr = borefield.results_peak_heating
             
     def __render_svg_metric(self, svg, text, result):
         """Renders the given svg string."""
@@ -732,22 +760,23 @@ class Calculator:
                 y=y_array,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=1.0, color="#1d3c34"),
+                line=dict(width=0.25, color="#1d3c34"),
             ))
            
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
-            margin=dict(l=50,r=50,b=10,t=10,pad=0),
+            margin=dict(l=50,r=50,b=10,t=10,pad=10),
             yaxis_title="Gjennomsnittlig kollektorvæsketemperatur [°C]",
             plot_bgcolor="white",
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [12 * 5, 12 * 10, 12 * 15, 12 * 20, 12 * 25, 12 * 30],
+                tickvals = [8760 * 5, 8760 * 10, 8760 * 15, 8760 * 20, 8760 * 25, 8760 * 30],
                 ticktext = ["År 5", "År 10", "År 15", "År 20", "År 25", "År 30"]
                 ))
+        
         fig.update_xaxes(
-            range=[0, 12 * 31],
+            range=[0, 8760 * 31],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -785,14 +814,14 @@ class Calculator:
                 svg = """<svg width="31" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="395" y="267" width="31" height="26"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-395 -267)"><path d="M24.3005 0.230906 28.8817 0.230906 28.8817 25.7691 24.3005 25.7691Z" stroke="#005173" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="#F0F3E3" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M1.40391 2.48455 1.40391 25.5936 6.41918 25.5936 6.41918 2.48455C4.70124 1.49627 3.02948 1.44085 1.40391 2.48455Z" stroke="#005173" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M24.3005 25.7691 1.23766 25.7691" stroke="#1F3E36" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M24.3005 0.230906 6.59467 0.230906 6.59467 25.7691" stroke="#1F3E36" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M24.3005 17.6874 6.59467 17.6874" stroke="#1F3E36" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M24.3005 8.33108 6.59467 8.33108" stroke="#1F3E36" stroke-width="0.461812" stroke-linecap="round" stroke-miterlimit="10" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M9.71652 12.4874 10.1691 12.4874 10.1691 14.0114 11.222 14.7133 11.222 16.108 10.2153 16.8007 9.71652 16.8007" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M9.72575 12.4874 9.26394 12.4874 9.26394 14.0114 8.22025 14.7133 8.22025 16.108 9.21776 16.8007 9.72575 16.8007" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M14.27 12.4874 14.7226 12.4874 14.7226 14.0114 15.7663 14.7133 15.7663 16.108 14.7687 16.8007 14.27 16.8007" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M14.27 12.4874 13.8174 12.4874 13.8174 14.0114 12.7645 14.7133 12.7645 16.108 13.7712 16.8007 14.27 16.8007" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M1.40391 5.90195 0.230906 5.90195 0.230906 10.9542 1.40391 10.9542" stroke="#005173" stroke-width="0.461812" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M1.40391 13.0046 0.230906 13.0046 0.230906 25.0025 1.40391 25.0025" stroke="#005173" stroke-width="0.461812" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M28.0412 4.58117 25.2611 4.58117 25.2611 2.73393 25.2611 2.10586 28.0412 2.10586 28.0412 4.58117Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M25.4366 2.73393 28.0412 2.73393" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M25.4366 3.34352 28.0412 3.34352" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M25.4366 3.95311 28.0412 3.95311" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M9.71652 20.6799 10.1691 20.6799 10.1691 22.2131 11.222 22.9059 11.222 24.3005 10.2153 25.0025 9.71652 25.0025" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M9.72575 20.6799 9.26394 20.6799 9.26394 22.2131 8.22025 22.9059 8.22025 24.3005 9.21776 25.0025 9.72575 25.0025" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M14.27 20.6799 14.7226 20.6799 14.7226 22.2131 15.7663 22.9059 15.7663 24.3005 14.7687 25.0025 14.27 25.0025" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M14.27 20.6799 13.8174 20.6799 13.8174 22.2131 12.7645 22.9059 12.7645 24.3005 13.7712 25.0025 14.27 25.0025" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M20.0149 1.05293 23.4139 1.05293 23.4139 7.56448 20.0149 7.56448Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M17.9552 13.0046 23.4046 13.0046 23.4046 15.5538 17.9552 15.5538Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M19.0913 11.6931C19.0913 11.9073 18.9176 12.081 18.7034 12.081 18.4891 12.081 18.3155 11.9073 18.3155 11.6931 18.3155 11.4788 18.4891 11.3052 18.7034 11.3052 18.9176 11.3052 19.0913 11.4788 19.0913 11.6931Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M18.7034 13.0046 18.7034 12.081" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M20.4028 11.6931C20.4028 11.9073 20.2292 12.081 20.0149 12.081 19.8007 12.081 19.627 11.9073 19.627 11.6931 19.627 11.4788 19.8007 11.3052 20.0149 11.3052 20.2292 11.3052 20.4028 11.4788 20.4028 11.6931Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M20.0149 13.0046 20.0149 12.081" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M21.7421 11.6931C21.7421 11.9073 21.5684 12.081 21.3542 12.081 21.1399 12.081 20.9663 11.9073 20.9663 11.6931 20.9663 11.4788 21.1399 11.3052 21.3542 11.3052 21.5684 11.3052 21.7421 11.4788 21.7421 11.6931Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M21.3542 13.0046 21.3542 12.081" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M23.0536 11.6931C23.0536 11.9073 22.88 12.081 22.6657 12.081 22.4515 12.081 22.2778 11.9073 22.2778 11.6931 22.2778 11.4788 22.4515 11.3052 22.6657 11.3052 22.88 11.3052 23.0536 11.4788 23.0536 11.6931Z" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="#FFF" transform="matrix(1.04327 0 0 1 395.314 267)"/><path d="M22.6657 13.0046 22.6657 12.081" stroke="#005173" stroke-width="0.230906" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="matrix(1.04327 0 0 1 395.314 267)"/></g></svg>"""
                 self.__render_svg_metric(svg, "Varmepumpestørrelse", f"{self.heat_pump_size} kW")
             
-            with st.expander("Mer om brønndybde og varmepumpestørrelse"):
+            with st.expander("Mer om brønndybde og varmepumpestørrelse", expanded = True):
                 st.write(""" Vi har gjort en forenklet beregning for å dimensjonere et bergvarmeanlegg med 
-                energibrønn og varmepumpe for din bolig. Dybde på energibrønn og størrelse på varmepumpe 
-                beregnes ut ifra et anslått oppvarmingsbehov for boligen din og antakelser om 
+                energibrønn og varmepumpe for ditt bygg. Dybde på energibrønn og størrelse på varmepumpe 
+                beregnes ut ifra et anslått oppvarmingsbehov for byggen din og antakelser om 
                 egenskapene til berggrunnen der du bor. Varmepumpestørrelsen gjelder on/off 
                 og ikke varmepumper med inverterstyrt kompressor.""")
                 
-                st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, )
                 
                 st.write(f""" Hvis uttaket av varme fra energibrønnen ikke er balansert med varmetilførselen i grunnen, 
                         vil temperaturen på bergvarmesystemet synke og energieffektiviteten minke. Det er derfor viktig at energibrønnen er tilstrekkelig dyp
@@ -805,14 +834,11 @@ class Calculator:
                          {self.__rounding_to_int(self.kWh_per_meter)} kWh/(m∙år) og {self.__rounding_to_int(self.W_per_meter)} W/m for at 
                          positiv temperatur i grunnen opprettholdes gjennom anleggets levetid (se figur under). """)  
                 
-                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, )
             
                 if self.number_of_boreholes > 1:
-                    st.info(f"Det bør være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
+                    st.info(f"Det må være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
                 
-                st.warning("""**Før du kan installere bergvarme, må entreprenøren gjøre en grundigere beregning. 
-                Den må baseres på reelt oppvarmings- og kjølebehov, en mer nøyaktig vurdering av grunnforholdene, 
-                inkludert berggrunnens termiske egenskaper, og simuleringer av temperaturen i energibrønnen.**""", icon="⚠️")
         
     def environmental_results(self):
         with st.container():
@@ -824,8 +850,8 @@ class Calculator:
             with c2:
                 svg = """ <svg width="26" height="35" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="hidden"><defs><clipPath id="clip0"><rect x="458" y="120" width="26" height="26"/></clipPath></defs><g clip-path="url(#clip0)" transform="translate(-458 -120)"><path d="M480.21 137.875 480.21 135.438 472.356 129.885 472.356 124.604C472.356 123.548 471.814 122.167 471.001 122.167 470.216 122.167 469.647 123.548 469.647 124.604L469.647 129.885 461.793 135.438 461.793 137.875 469.647 133.948 469.647 139.852 466.939 142.208 466.939 143.833 471.001 142.208 475.064 143.833 475.064 142.208 472.356 139.852 472.356 133.948ZM472 140.261 474.522 142.455 474.522 143.033 471.203 141.706 471.001 141.624 470.8 141.706 467.481 143.033 467.481 142.455 470.003 140.261 470.189 140.099 470.189 133.072 469.403 133.463 462.335 136.999 462.335 135.718 469.96 130.328 470.189 130.166 470.189 124.604C470.189 123.645 470.703 122.708 471.001 122.708 471.341 122.708 471.814 123.664 471.814 124.604L471.814 130.166 472.043 130.328 479.668 135.718 479.668 136.999 472.598 133.463 471.814 133.072 471.814 140.099Z" stroke="#005173" stroke-width="0.270833"/></g></svg>"""
                 self.__render_svg_metric(svg, f"Utslippskutt etter {self.BOREHOLE_SIMULATION_YEARS} år", f"{self.emission_savings_flights:,} sparte flyreiser".replace(',', ' '))
-            with st.expander("Mer om strømsparing og utslippskutt"):
-                st.write(f""" Vi har beregnet hvor mye strøm bergvarme vil spare i din bolig sammenlignet med å bruke elektrisk oppvarming.
+            with st.expander("Mer om strømsparing og utslippskutt", expanded = True):
+                st.write(f""" Vi har beregnet hvor mye strøm bergvarme vil spare i ditt bygg sammenlignet med å bruke elektrisk oppvarming.
                 Figurene viser at du sparer {self.__rounding_to_int(np.sum(self.delivered_from_wells_series)):,} kWh i året med bergvarme. 
                 Hvis vi tar utgangspunkt i en {self.selected_emission_constant.lower()} strømmiks
                 vil du i løpet av {self.BOREHOLE_SIMULATION_YEARS} år spare {self.emission_savings} tonn CO\u2082. Dette tilsvarer **{self.emission_savings_flights} flyreiser** mellom Oslo og Trondheim. """.replace(',', ' '))
@@ -850,10 +876,9 @@ class Calculator:
             tab1, tab2 = st.tabs(["Direktekjøp", "Lånefinansiert"])
             with tab1:
                 # direktekjøp
-                st.info(" Maksimér din besparelse ved å kjøpe bergvarme etter at installasjonen er fullført.", icon = "💰")
                 __show_metrics(investment = self.investment_cost, short_term_savings = self.short_term_investment, long_term_savings = self.long_term_investment)
                 #st.success(f"Bergvarme sparer deg for  {self.savings_operation_cost_lifetime - self.investment_cost:,} kr etter 20 år! ".replace(",", " "), icon = "💰")
-                with st.expander("Mer om lønnsomhet med bergvarme"): 
+                with st.expander("Mer om lønnsomhet med bergvarme", expanded = True): 
                     st.write(""" Estimert investeringskostnad omfatter en komplett installasjon av et 
                     bergvarmeanlegg, inkludert energibrønn, varmepumpe og installasjon. Denne er antatt fordelt slik: """)
                     
@@ -864,32 +889,30 @@ class Calculator:
                     st.write("")
                     st.write("""**Merk at dette er et estimat. Endelig pris fastsettes av leverandøren.**""")          
                           
-                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, )
 
             with tab2:
                 # lån
                 if self.short_term_loan > 0:
-                    st.info("Få redusert strømregning fra første dagen anlegget er i drift med lånefinansiering.", icon = "💸")                    
                     __show_metrics(investment = 0, short_term_savings = self.short_term_loan, long_term_savings = self.long_term_loan, investment_text = "Investeringskostnad (lånefinasiert)")
                     #st.success(f"""Bergvarme sparer deg for {(self.loan_savings_monthly - self.loan_cost_monthly) * 12 * 20:,} kr etter 20 år! """.replace(",", " "), icon = "💰")
                     with st.expander("Mer om lønnsomhet med bergvarme"):                       
-                        st.write(f""" Mange banker har begynt å tilby billigere boliglån hvis boligen regnes som miljøvennlig; et såkalt grønt boliglån. 
-                        En oppgradering til bergvarme kan kvalifisere boligen din til et slikt lån. """)
+                        st.write(f""" Mange banker har begynt å tilby billigere bygglån hvis byggen regnes som miljøvennlig; et såkalt grønt bygglån. 
+                        En oppgradering til bergvarme kan kvalifisere byggen din til et slikt lån. """)
 
                         st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
                         av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
                         løpet av {self.BOREHOLE_SIMULATION_YEARS} år med effektiv rente på {round(self.INTEREST,2)} % """)
-                        st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, config = {'displayModeBar': False, 'staticPlot': True})
+                        st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, )
                 else:
                     st.warning("Lånefinansiering er ikke lønnsomt med oppgitte forutsetninger. Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon="⚠️")
             
             
     def streamlit_results(self):
-        st.header("Resultater for din bolig")
+        st.header("Resultater for ditt bygg")
         self.sizing_results()
         self.environmental_results()
         self.cost_results()
-        st.info("Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon = "ℹ️")
         
     def streamlit_hide_fullscreen_view(self):
         hide_img_fs = '''
@@ -919,7 +942,7 @@ class Calculator:
         data['oppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
         data['varmtvannsbehov'] = self.__rounding_to_int(np.sum(self.dhw_demand))
         data['romoppvarmingsbehov'] = self.__rounding_to_int(np.sum(self.space_heating_demand))
-        data['boligareal'] = self.building_area
+        data['bygningsareal'] = self.building_area
         data['adresse'] = self.address_name
         data['investeringskostnad'] = self.investment_cost
         json_data = json.dumps(data)      
@@ -939,13 +962,13 @@ class Calculator:
  
     def main(self):
         self.set_streamlit_settings()
-        self.streamlit_hide_fullscreen_view()
+        #self.streamlit_hide_fullscreen_view()
         self.streamlit_input_container()
         self.streamlit_calculations()
         # ferdig
         self.progress_bar.progress(100)
         self.streamlit_results()
-        self.novap()
+        #self.novap()
         
 if __name__ == '__main__':
     calculator = Calculator()
