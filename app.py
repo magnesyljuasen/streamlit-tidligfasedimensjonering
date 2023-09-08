@@ -240,7 +240,7 @@ class Calculator:
         demand_sum_old = self.__rounding_to_int(np.sum(self.dhw_demand + self.space_heating_demand))
         c1, c2 = st.columns(2)
         with c1:
-            demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 10000, max_value = 10000000)
+            demand_sum_new = st.number_input('1. Hva er boligens årlige varmebehov? [kWh/år]', value = demand_sum_old, step = 1000, min_value = 15000, max_value = 100000)
         with c2:
             st.info(f"Vi estimerer at din bolig har et årlig varmebehov på ca. {demand_sum_old:,} kWh".replace(",", " "))
         if demand_sum_new == 'None' or demand_sum_new == '':
