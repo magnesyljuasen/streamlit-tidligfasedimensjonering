@@ -666,7 +666,7 @@ class Calculator:
         while self.borehole_depth >= self.MAXIMUM_DEPTH:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
             borefield.set_borefield(borefield_gt)         
-            self.borehole_depth = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
+            self.borehole_depth = borefield.size(L3_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
             self.progress_bar.progress(66)
             self.borehole_temperature_arr = borefield.results_peak_heating
             self.number_of_boreholes = borefield.number_of_boreholes
