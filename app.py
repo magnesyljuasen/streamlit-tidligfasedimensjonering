@@ -21,6 +21,7 @@ from GHEtool import Borefield, FluidData, GroundData, PipeData
 from plotly import graph_objects as go
 import plotly.express as px
 import datetime
+from streamlit_extras.chart_container import chart_container
 
 class Calculator:
     def __init__(self):
@@ -34,7 +35,7 @@ class Calculator:
         self.BOREHOLE_BURIED_DEPTH = 10
         self.BOREHOLE_RADIUS = (115/1000)/2
         self.BOREHOLE_SIMULATION_YEARS = 30
-        self.EFFECT_COVERAGE = 85
+        self.EFFECT_COVERAGE = 50
 
         self.MAXIMUM_DEPTH = 300
         self.COST_PER_METER = 400
@@ -581,7 +582,6 @@ class Calculator:
         
         self.MINIMUM_TEMPERATURE = st.number_input("Minimumstemperatur (dimensjonering) [°C]", value = 0, step = 1)
         self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 30, step = 1)
-        self.EFFECT_COVERAGE = st.number_input("Effektdekningsgrad [%]", value = 85, step = 5)
 
         self.GROUND_TEMPERATURE = st.number_input("Uforstyrret temperatur (terrengnivå) [°C]", value = self.average_temperature)
         self.BOREHOLE_RESISTANCE = st.number_input("Borehullsmotstand [(m∙K)/W]", value = 0.10)
@@ -661,7 +661,8 @@ class Calculator:
         borefield.set_hourly_cooling_load(np.zeros(8760))        
         borefield.set_max_ground_temperature(16)
         borefield.set_min_ground_temperature(self.MINIMUM_TEMPERATURE)
-        i = 0
+        #if (np.sum(self.delivered_from_wells_series)/80/300) > 
+        i = 10
         self.borehole_depth = self.MAXIMUM_DEPTH + 1
         while self.borehole_depth >= self.MAXIMUM_DEPTH:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
@@ -749,6 +750,72 @@ class Calculator:
         )
         return fig
     
+    def __plot_gshp_delivered_varighetskurve(self):
+        y_arr_1 = np.sort(self.compressor_series)[::-1]
+        y_arr_2 = np.sort(self.delivered_from_wells_series)[::-1]
+        y_arr_3 = np.sort(self.peak_series)[::-1]
+        x_arr = np.array(range(0, len(self.delivered_from_wells_series)))
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_1,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#a23f47"),
+                name=f"Strøm til varmepumpe:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_2,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#48a23f"),
+                name=f"Levert fra brønner:<br>{self.__rounding_to_int(np.sum(y_arr_2)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_2)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_3,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#e1b1b5"),
+                name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(
+        margin=dict(l=50,r=50,b=10,t=10,pad=0),
+        yaxis_title="Effekt [kW]",
+        xaxis_title="Varighet [timer]",
+        plot_bgcolor="white",
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+        barmode="stack",)
+
+        fig.update_xaxes(
+            range=[0, 8760],
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        fig.update_yaxes(
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+        )
+        return fig
+    
     def __plot_borehole_temperature(self):
         y_array = self.borehole_temperature_arr
         x_array = np.array(range(0, len(self.borehole_temperature_arr)))
@@ -821,11 +888,22 @@ class Calculator:
                 egenskapene til berggrunnen der du bor. Varmepumpestørrelsen gjelder on/off 
                 og ikke varmepumper med inverterstyrt kompressor.""")
                 
-                st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, )
+                chart_df = pd.DataFrame({
+                    "Strøm til VP" : self.compressor_series,
+                    "Levert fra brønner" : self.delivered_from_wells_series,
+                    "Spisslast" : self.peak_series
+                })
+                with chart_container(chart_df):
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True)
+
+                chart_df = pd.DataFrame({
+                    "Strøm til VP" : np.sort(self.compressor_series)[::-1],
+                    "Levert fra brønner" : np.sort(self.delivered_from_wells_series)[::-1],
+                    "Spisslast" : np.sort(self.peak_series)[::-1]
+                })
+                with chart_container(chart_df):
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered_varighetskurve(), use_container_width=True)
                 
-                st.write(f""" Hvis uttaket av varme fra energibrønnen ikke er balansert med varmetilførselen i grunnen, 
-                        vil temperaturen på bergvarmesystemet synke og energieffektiviteten minke. Det er derfor viktig at energibrønnen er tilstrekkelig dyp
-                        til å kunne balansere varmeuttaket. """)
                 if self.number_of_boreholes > 1:
                     energy_well_text = "energibrønnene"
                 else:
@@ -834,7 +912,12 @@ class Calculator:
                          {self.__rounding_to_int(self.kWh_per_meter)} kWh/(m∙år) og {self.__rounding_to_int(self.W_per_meter)} W/m for at 
                          positiv temperatur i grunnen opprettholdes gjennom anleggets levetid (se figur under). """)  
                 
-                st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, )
+                st.write(f"""Energidekningsgrad {self.__rounding_to_int(((np.sum(self.compressor_series + self.delivered_from_wells_series)) / (np.sum(self.dhw_demand + self.space_heating_demand))) * 100)} %""")  
+                chart_df = pd.DataFrame({
+                    "Gjennomsnittlig kollektorvæsketemperatur" : self.borehole_temperature_arr,
+                })
+                with chart_container(chart_df):
+                    st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, )
             
                 if self.number_of_boreholes > 1:
                     st.info(f"Det må være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
