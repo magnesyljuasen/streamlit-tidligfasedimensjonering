@@ -578,7 +578,7 @@ class Calculator:
     def __adjust_parameters(self):
         self.THERMAL_CONDUCTIVITY = st.number_input("Effektiv varmeledningsevne [W/(m∙K)]", value = 3.5, step = 0.1)
         self.GROUNDWATER_TABLE = st.number_input("Grunnvannstand [m]", value = 5, step = 1)
-        self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
+        #self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
         
         self.MINIMUM_TEMPERATURE = st.number_input("Minimumstemperatur (dimensjonering) [°C]", value = 0, step = 1)
         self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 30, step = 1)
