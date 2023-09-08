@@ -661,8 +661,7 @@ class Calculator:
         borefield.set_hourly_cooling_load(np.zeros(8760))        
         borefield.set_max_ground_temperature(16)
         borefield.set_min_ground_temperature(self.MINIMUM_TEMPERATURE)
-        #if (np.sum(self.delivered_from_wells_series)/80/300) > 
-        i = 10
+        i = self.__rounding_to_int(np.sum(self.delivered_from_wells_series)/80/300)
         self.borehole_depth = self.MAXIMUM_DEPTH + 1
         while self.borehole_depth >= self.MAXIMUM_DEPTH:
             borefield_gt = gt.boreholes.rectangle_field(N_1 = 1, N_2 = i + 1, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
@@ -674,6 +673,9 @@ class Calculator:
             self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.borehole_depth * self.number_of_boreholes))
             self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.borehole_depth * self.number_of_boreholes) * 1000
             i = i + 1
+            if i == 50:
+                st.error("Beregning feilet, prøv en annen varmepumpestørrelse")
+                break
             
     def __render_svg_metric(self, svg, text, result):
         """Renders the given svg string."""
