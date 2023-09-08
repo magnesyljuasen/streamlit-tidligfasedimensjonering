@@ -672,6 +672,7 @@ class Calculator:
             self.number_of_boreholes = borefield.number_of_boreholes
             self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.borehole_depth * self.number_of_boreholes))
             self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.borehole_depth * self.number_of_boreholes) * 1000
+            st.caption(f"Tester {i} brønner")
             i = i + 1
             if i == 50:
                 st.error("Beregning feilet, prøv en annen varmepumpestørrelse")
