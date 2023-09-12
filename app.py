@@ -69,7 +69,7 @@ class Calculator:
         st.set_page_config(
         page_title="Tidligfasedimensjonering",
         page_icon="♨️",
-        layout="wide",
+        layout="centered",
         initial_sidebar_state="expanded")
         
         with open("src/styles/main.css") as f:
@@ -333,8 +333,12 @@ class Calculator:
     def cost_calculation(self):
         # -- investeringskostnader 
         self.geoenergy_investment_cost = self.__rounding_to_int((self.BOREHOLE_DEPTH * self.number_of_boreholes) * self.COST_PER_METER) # brønn + graving
-        self.heatpump_cost = self.__rounding_to_int((self.heat_pump_size) * self.COST_HEAT_PUMP_PER_KW) # varmepumpe
-        self.investment_cost = self.geoenergy_investment_cost + self.heatpump_cost + self.waterborne_heat_cost
+        
+        if self.heat_pump_size > 6:
+            self.heat_pump_cost = self.__rounding_to_int((self.heat_pump_size - 6) * self.COST_HEAT_PUMP_PER_KW + 120000)
+        else:
+            self.heat_pump_cost = 120000
+        self.investment_cost = self.geoenergy_investment_cost + self.heat_pump_cost + self.waterborne_heat_cost
 
         # -- driftskostnader
         self.direct_el_operation_cost = (self.dhw_demand + self.space_heating_demand) * self.elprice # kostnad direkte elektrisk
@@ -399,7 +403,7 @@ class Calculator:
             margin=dict(l=50,r=50,b=10,t=10,pad=0),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
             barmode="stack",
             yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
@@ -445,7 +449,7 @@ class Calculator:
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
 
-        tickspacing = 3
+        tickspacing = 5
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
@@ -454,17 +458,17 @@ class Calculator:
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
             yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
                 tickfont = dict(size=20),
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
-                ticktext = [f"{i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
+                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)],
+                ticktext = [f"{i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)]
                 ))
         
         fig.update_xaxes(
-            range=[0, self.BOREHOLE_SIMULATION_YEARS],
+            range=[0, self.BOREHOLE_SIMULATION_YEARS + 1],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -500,7 +504,7 @@ class Calculator:
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
     
-        tickspacing = 3
+        tickspacing = 5
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
@@ -509,17 +513,17 @@ class Calculator:
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
             yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
                 tickfont = dict(size=20),
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
-                ticktext = [f"{i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
+                tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)],
+                ticktext = [f"{i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)]
                 ))
         
         fig.update_xaxes(
-            range=[0, self.BOREHOLE_SIMULATION_YEARS],
+            range=[0, self.BOREHOLE_SIMULATION_YEARS + 1],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -545,7 +549,7 @@ class Calculator:
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
             legend_title_text = "Bergvarme"
             )
 
@@ -557,7 +561,7 @@ class Calculator:
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
             legend_title_text = "Direkte elektrisk oppvarming"
             )
             fig.update_traces(textinfo='none')
@@ -850,7 +854,7 @@ class Calculator:
         margin=dict(l=50,r=50,b=10,t=10,pad=0),
         yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
         barmode="stack",
         yaxis = dict(tickfont = dict(size=20)),
         xaxis = dict(
@@ -923,7 +927,7 @@ class Calculator:
         yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
         xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 20)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
         barmode="stack",
         yaxis = dict(tickfont = dict(size=20)),
         xaxis = dict(tickfont = dict(size=20)))
@@ -962,6 +966,7 @@ class Calculator:
         fig.update_layout(
             margin=dict(l=50,r=50,b=10,t=10,pad=10),
             yaxis_title=dict(text = "Gjennomsnittlig kollektorvæsketemperatur [°C]", font = dict(size = 20)),
+            xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
             barmode="stack",
             yaxis = dict(tickfont = dict(size=20)),
@@ -969,7 +974,7 @@ class Calculator:
                 tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [8760 * (i + 1) * tickspacing for i in range(tickrange)],
-                ticktext = [f"År {(i + 1) * tickspacing}" for i in range(tickrange)]
+                ticktext = [f"{(i + 1) * tickspacing}" for i in range(tickrange)]
                 ))
         
         fig.update_xaxes(
@@ -1094,9 +1099,8 @@ class Calculator:
                     if self.waterborne_heat_cost > 0:
                         st.write(f"- • Vannbåren varme: {self.__rounding_costs_to_int(self.waterborne_heat_cost):,} kr".replace(",", " "))
                     st.write(f"- • Energibrønn: {self.__rounding_costs_to_int(self.geoenergy_investment_cost):,} kr".replace(",", " "))
-                    st.write(f"- • Væske-vann-varmepumpe: {self.__rounding_costs_to_int(self.heatpump_cost):,} kr".replace(",", " "))
+                    st.write(f"- • Væske-vann-varmepumpe: {self.__rounding_costs_to_int(self.heat_pump_cost):,} kr".replace(",", " "))
                     st.write("")
-                    st.write("""**Merk at dette er et estimat. Endelig pris fastsettes av leverandøren.**""")          
                           
                     st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False})
 
