@@ -32,6 +32,7 @@ class Calculator:
         self.BUILDING_STANDARD = "X"
         
         self.MINIMUM_TEMPERATURE = 0
+        self.MAXIMUM_TEMPERATURE = 16
         self.BOREHOLE_BURIED_DEPTH = 10
         self.BOREHOLE_RADIUS = (115/1000)/2
         self.BOREHOLE_DEPTH = 300
@@ -593,6 +594,7 @@ class Calculator:
                                
             st.form_submit_button('Oppdater')
 
+
     def __adjust_well_parameters(self):
         self.BOREHOLE_DEPTH = st.number_input("Dybde [m]", value = 300, step = 50)
         self.GROUNDWATER_TABLE = st.number_input("Grunnvannstand [m]", value = 5, step = 1)
@@ -601,18 +603,20 @@ class Calculator:
         self.BOREHOLE_FIELD = self.__select_borehole_field()
         
     def __adjust_simulation_parameters(self):
-        self.SIMULATION_MODE = st.selectbox("Alternativer", options = ["Lås brønndybde", "Lås minimumstemperatur"])
-        if self.SIMULATION_MODE == "Lås minimumstemperatur":
+        self.SIMULATION_MODE = st.selectbox("Alternativer", options = ["Lås brønndybde", "Lås ekstremaltemperatur"])
+        if self.SIMULATION_MODE == "Lås ekstremaltemperatur":
             self.MINIMUM_TEMPERATURE = st.number_input("Minimumstemperatur [°C]", value = 0, step = 1)
+            self.MAXIMUM_TEMPERATURE = st.number_input("Maksimumstemperatur [°C]", value = 16, step = 1)
         self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 25, step = 5)
 
     def __adjust_geology_parameters(self):
         self.THERMAL_CONDUCTIVITY = st.number_input("Effektiv varmeledningsevne [W/(m∙K)]", value = 3.5, step = 0.1)
         self.BOREHOLE_RESISTANCE = st.number_input("Borehullsmotstand [(m∙K)/W]", value = 0.10)
-        self.GROUND_TEMPERATURE = st.number_input("Uforstyrret temperatur (terrengnivå) [°C]", value = self.average_temperature)
-        
-        
-        #self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
+        self.TEMPERATURE_MODE = st.selectbox("Uforstyrret temperatur", options = ["Gjennomsnittlig brønntemperatur", "Overflatetemperatur"])
+        if self.TEMPERATURE_MODE == "Overflatetemperatur":
+            self.GROUND_TEMPERATURE = st.number_input("Overflatetemperatur [°C]", value = self.average_temperature)
+        else:
+            self.GROUND_TEMPERATURE = st.number_input("Gjennomsnittlig brønntemperatur [°C]", value = 8.0, step = 0.5)
 
     def __adjust_parameters(self):
         self.MAXIMUM_DEPTH = 300
@@ -621,7 +625,6 @@ class Calculator:
         self.PAYMENT_TIME = 30
         self.INTEREST = 3.0
 
-                
     def __adjust_cop(self):
         space_heating_sum = np.sum(self.space_heating_demand)
         dhw_sum = np.sum(self.dhw_demand)
@@ -749,31 +752,35 @@ class Calculator:
         self.compressor_series = self.heat_pump_series - self.delivered_from_wells_series
         self.peak_series = thermal_demand - self.heat_pump_series
 
-        data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = self.GROUND_TEMPERATURE, R_b = self.BOREHOLE_RESISTANCE, flux = 0.04)
+        # korrigere
+        
+        if self.TEMPERATURE_MODE == "Overflatetemperatur":
+            FLUX = 0.04
+            data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = self.GROUND_TEMPERATURE, R_b = self.BOREHOLE_RESISTANCE, flux = FLUX)
+            constant_tg = False
+            tg = self.GROUND_TEMPERATURE + self.BOREHOLE_DEPTH * FLUX / self.THERMAL_CONDUCTIVITY / 2
+        elif self.TEMPERATURE_MODE == "Gjennomsnittlig brønntemperatur":
+            tg = self.GROUND_TEMPERATURE
+            data = GroundData(k_s = self.THERMAL_CONDUCTIVITY, T_g = self.GROUND_TEMPERATURE, R_b = self.BOREHOLE_RESISTANCE, flux = 0)
+            constant_tg = True
         borefield = Borefield(simulation_period = self.BOREHOLE_SIMULATION_YEARS)
         borefield.set_ground_parameters(data) 
         borefield.set_hourly_heating_load(heating_load = self.delivered_from_wells_series)
         borefield.set_hourly_cooling_load(np.zeros(8760))        
-        borefield.set_max_ground_temperature(16)
+        borefield.set_max_ground_temperature(self.MAXIMUM_TEMPERATURE)
         borefield.set_min_ground_temperature(self.MINIMUM_TEMPERATURE)
-        #i = self.__rounding_to_int(np.sum(self.delivered_from_wells_series)/80/300)
-        #self.borehole_depth = self.MAXIMUM_DEPTH + 1
-        #while self.borehole_depth >= self.MAXIMUM_DEPTH:
         borefield.set_borefield(self.BOREHOLE_FIELD)
         if self.SIMULATION_MODE == "Lås brønndybde":
+            borefield.sizing_setup(use_constant_Tg=constant_tg)
             borefield.calculate_temperatures(hourly = True)
-        elif self.SIMULATION_MODE == "Lås minimumstemperatur":
-            self.SIMULATION_BOREHOLE_DEPTH = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
+        elif self.SIMULATION_MODE == "Lås ekstremaltemperatur":
+            self.SIMULATION_BOREHOLE_DEPTH = borefield.size(L4_sizing=True, use_constant_Tg = constant_tg) + self.GROUNDWATER_TABLE
         self.progress_bar.progress(66)
         self.borehole_temperature_arr = borefield.results_peak_heating
+        self.borehole_temperature_arr[0] = tg
         self.number_of_boreholes = borefield.number_of_boreholes
         self.kWh_per_meter = np.sum((self.delivered_from_wells_series)/(self.SIMULATION_BOREHOLE_DEPTH * self.number_of_boreholes))
         self.W_per_meter = np.max((self.delivered_from_wells_series))/(self.SIMULATION_BOREHOLE_DEPTH* self.number_of_boreholes) * 1000
-        #st.caption(f"Tester {i} brønner")
-        #i = i + 1
-        #if i == 50:
-        #    st.error("Beregning feilet, prøv en annen varmepumpestørrelse")
-        #    break
             
     def __render_svg_metric(self, svg, text, result):
         """Renders the given svg string."""
@@ -920,14 +927,14 @@ class Calculator:
         y_array = self.borehole_temperature_arr
         x_array = np.array(range(0, len(self.borehole_temperature_arr)))
         fig = go.Figure()
-
+        
         fig.add_trace(
             go.Scatter(
                 x=x_array,
                 y=y_array,
                 hoverinfo='skip',
                 mode='lines',
-                line=dict(width=0.25, color="#1d3c34"),
+                line=dict(width=1, color="#1d3c34"),
             ))
            
         fig.update_layout(legend=dict(itemsizing='constant'))
@@ -951,10 +958,12 @@ class Calculator:
             gridcolor="lightgrey",
         )
         fig.update_yaxes(
+            range=[-2, 16],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
         )
+
         return fig
     
     def __rounding_to_int(self, number):
