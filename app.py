@@ -23,6 +23,7 @@ import plotly.express as px
 import datetime
 from streamlit_extras.chart_container import chart_container
 
+
 class Calculator:
     def __init__(self):
         self.THERMAL_CONDUCTIVITY = 3.5
@@ -396,11 +397,13 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             margin=dict(l=50,r=50,b=10,t=10,pad=0),
-            yaxis_title="Oppvarmingskostnader [kr]",
+            yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
             barmode="stack",
+            yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
+                tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)],
                 ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS, 2)]
@@ -448,10 +451,12 @@ class Calculator:
         fig.update_layout(
             autosize=True,
             margin=dict(l=0,r=0,b=10,t=10,pad=0),
-            yaxis_title="Oppvarmingskostnader [kr]",
+            yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
+                tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
                 ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
@@ -499,10 +504,12 @@ class Calculator:
         fig.update_layout(
             autosize=True,
             margin=dict(l=0,r=0,b=10,t=10,pad=0),
-            yaxis_title="Oppvarmingskostnader [kr]",
+            yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+            yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
+                tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
                 ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
@@ -534,7 +541,7 @@ class Calculator:
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
             legend_title_text = "Bergvarme"
             )
 
@@ -545,7 +552,7 @@ class Calculator:
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
             legend_title_text = "Direkte elektrisk oppvarming"
             )
             fig.update_traces(textinfo='none')
@@ -794,7 +801,7 @@ class Calculator:
         y_arr_3 = self.peak_series
         x_arr = np.array(range(0, len(self.delivered_from_wells_series)))
         fig = go.Figure()
-
+        
         fig.add_trace(
             go.Scatter(
                 x=x_arr,
@@ -835,11 +842,13 @@ class Calculator:
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
         margin=dict(l=50,r=50,b=10,t=10,pad=0),
-        yaxis_title="Effekt [kW]",
+        yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
         barmode="stack",
+        yaxis = dict(tickfont = dict(size=20)),
         xaxis = dict(
+                tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [0, 24 * (31), 24 * (31 + 28), 24 * (31 + 28 + 31), 24 * (31 + 28 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31)],
                 ticktext = ["1.jan", "", "1.mar", "", "1.mai", "", "1.jul", "", "1.sep", "", "1.nov", "", "1.jan"]
@@ -904,11 +913,13 @@ class Calculator:
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
         margin=dict(l=50,r=50,b=10,t=10,pad=0),
-        yaxis_title="Effekt [kW]",
-        xaxis_title="Varighet [timer]",
+        yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
+        xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 20)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
-        barmode="stack",)
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
+        barmode="stack",
+        yaxis = dict(tickfont = dict(size=20)),
+        xaxis = dict(tickfont = dict(size=20)))
 
         fig.update_xaxes(
             range=[0, 8760],
@@ -942,10 +953,12 @@ class Calculator:
         tickrange = self.__rounding_to_int(self.BOREHOLE_SIMULATION_YEARS/tickspacing)
         fig.update_layout(
             margin=dict(l=50,r=50,b=10,t=10,pad=10),
-            yaxis_title="Gjennomsnittlig kollektorvæsketemperatur [°C]",
+            yaxis_title=dict(text = "Gjennomsnittlig kollektorvæsketemperatur [°C]", font = dict(size = 20)),
             plot_bgcolor="white",
             barmode="stack",
+            yaxis = dict(tickfont = dict(size=20)),
             xaxis = dict(
+                tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [8760 * (i + 1) * tickspacing for i in range(tickrange)],
                 ticktext = [f"År {(i + 1) * tickspacing}" for i in range(tickrange)]
