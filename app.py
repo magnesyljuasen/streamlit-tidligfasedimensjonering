@@ -984,8 +984,6 @@ class Calculator:
                 self.__render_svg_metric(svg, "Varmepumpestørrelse", f"{self.heat_pump_size} kW")
             
             with st.expander("Mer om brønndybde og varmepumpestørrelse", expanded = True):
-                st.write(f"**Det er totalt {len(self.BOREHOLE_FIELD)} brønner**")
-
                 st.pyplot(gt.boreholes.visualize_field(borefield = self.BOREHOLE_FIELD))
                 
                 chart_df = pd.DataFrame({
