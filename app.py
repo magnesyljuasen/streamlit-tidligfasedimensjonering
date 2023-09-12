@@ -441,7 +441,7 @@ class Calculator:
                 x=x,
                 y=y_2,
                 hoverinfo='skip',
-                marker_color = "#880808",
+                marker_color = "#1d3c34",
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
 
@@ -452,6 +452,7 @@ class Calculator:
             autosize=True,
             margin=dict(l=0,r=0,b=10,t=10,pad=0),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
+            xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
             yaxis = dict(tickfont = dict(size=20)),
@@ -459,7 +460,7 @@ class Calculator:
                 tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
+                ticktext = [f"{i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
                 ))
         
         fig.update_xaxes(
@@ -475,6 +476,7 @@ class Calculator:
             gridcolor="lightgrey",
         )
         fig.update_layout(separators="* .*")
+        fig.write_image("src/data/images/lån.svg")
         return fig
     
     def __plot_costs_investment(self):
@@ -494,7 +496,7 @@ class Calculator:
                 x=x,
                 y=y_2,
                 hoverinfo='skip',
-                marker_color = "#880808",
+                marker_color = "#1d3c34",
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
     
@@ -505,6 +507,7 @@ class Calculator:
             autosize=True,
             margin=dict(l=0,r=0,b=10,t=10,pad=0),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
+            xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=20)),
             yaxis = dict(tickfont = dict(size=20)),
@@ -512,7 +515,7 @@ class Calculator:
                 tickfont = dict(size=20),
                 tickmode = 'array',
                 tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
+                ticktext = [f"{i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
                 ))
         
         fig.update_xaxes(
@@ -528,6 +531,7 @@ class Calculator:
             gridcolor="lightgrey",
         )
         fig.update_layout(separators="* .*")
+        fig.write_image("src/data/images/investering.svg")
         return fig
         
     def __plot_environmental(self):
@@ -537,7 +541,7 @@ class Calculator:
         col1, col2 = st.columns(2)
         with col1:
             source = pd.DataFrame({"label" : [f'Strøm: {geoenergy_emission:,} kWh/år'.replace(","," "), f'Fra grunnen: {(direct_el_emmision-geoenergy_emission):,} kWh/år'.replace(","," ")], "value": [geoenergy_emission, emission_savings]})
-            fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#48a23f', '#a23f47'], hole = 0.4)
+            fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#48a23f', '#1d3c34'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
@@ -545,10 +549,11 @@ class Calculator:
             legend_title_text = "Bergvarme"
             )
 
-            st.plotly_chart(figure_or_data = fig, use_container_width=True, )
+            st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
+            fig.write_image("src/data/images/miljø_1.svg")
         with col2:
             source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
-            fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#a23f47'], hole = 0.4)
+            fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#1d3c34'], hole = 0.4)
             fig.update_layout(
             margin=dict(l=0,r=0,b=0,t=0,pad=0),
             plot_bgcolor="white",
@@ -559,7 +564,8 @@ class Calculator:
             fig.update_layout(
                 autosize=True,
             )
-            st.plotly_chart(figure_or_data = fig, use_container_width=True, )
+            st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
+            fig.write_image("src/data/images/miljø_2.svg")
 
     def streamlit_calculations(self):
         with st.sidebar:
@@ -864,6 +870,7 @@ class Calculator:
             linecolor="black",
             gridcolor="lightgrey",
         )
+        fig.write_image("src/data/images/behov_timeplot.svg")
         return fig
     
     def __plot_gshp_delivered_varighetskurve(self):
@@ -932,6 +939,7 @@ class Calculator:
             linecolor="black",
             gridcolor="lightgrey",
         )
+        fig.write_image("src/data/images/behov_varighetskurve.svg")
         return fig
     
     def __plot_borehole_temperature(self):
@@ -976,7 +984,7 @@ class Calculator:
             linecolor="black",
             gridcolor="lightgrey",
         )
-
+        fig.write_image("src/data/images/kollektorvæsketmperatur.svg")
         return fig
     
     def __rounding_to_int(self, number):
@@ -1014,7 +1022,7 @@ class Calculator:
                     "Spisslast" : self.peak_series
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True)
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, config = {'displayModeBar': False})
 
                 chart_df = pd.DataFrame({
                     "Strøm til VP" : np.sort(self.compressor_series)[::-1],
@@ -1022,14 +1030,14 @@ class Calculator:
                     "Spisslast" : np.sort(self.peak_series)[::-1]
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered_varighetskurve(), use_container_width=True)
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered_varighetskurve(), use_container_width=True, config = {'displayModeBar': False})
                 
                 
                 chart_df = pd.DataFrame({
                     "Gjennomsnittlig kollektorvæsketemperatur" : self.borehole_temperature_arr,
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True)
+                    st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False})
                 
                 if self.number_of_boreholes > 1:
                     energy_well_text = "energibrønnene"
@@ -1090,7 +1098,7 @@ class Calculator:
                     st.write("")
                     st.write("""**Merk at dette er et estimat. Endelig pris fastsettes av leverandøren.**""")          
                           
-                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, )
+                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False})
 
             with tab2:
                 # lån
@@ -1104,7 +1112,7 @@ class Calculator:
                         st.write(f""" Søylediagrammene viser årlige kostnader til oppvarming hvis investeringen finansieres 
                         av et grønt lån. Her har vi forutsatt at investeringen nedbetales i 
                         løpet av {self.BOREHOLE_SIMULATION_YEARS} år med effektiv rente på {round(self.INTEREST,2)} % """)
-                        st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, )
+                        st.plotly_chart(figure_or_data = self.__plot_costs_loan(), use_container_width=True, config = {'displayModeBar': False}, )
                 else:
                     st.warning("Lånefinansiering er ikke lønnsomt med oppgitte forutsetninger. Endre forutsetningene for beregningene ved å trykke på knappen øverst i venstre hjørne.", icon="⚠️")
             
