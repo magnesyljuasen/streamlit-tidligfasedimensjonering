@@ -69,7 +69,7 @@ class Calculator:
         st.set_page_config(
         page_title="Tidligfasedimensjonering",
         page_icon="♨️",
-        layout="centered",
+        layout="wide",
         initial_sidebar_state="expanded")
         
         with open("src/styles/main.css") as f:
