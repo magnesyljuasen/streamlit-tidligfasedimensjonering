@@ -34,6 +34,8 @@ class Calculator:
         self.MINIMUM_TEMPERATURE = 0
         self.BOREHOLE_BURIED_DEPTH = 10
         self.BOREHOLE_RADIUS = (115/1000)/2
+        self.BOREHOLE_DEPTH = 300
+        self.BOREHOLE_DISTANCE = 15
         self.BOREHOLE_SIMULATION_YEARS = 30
         self.EFFECT_COVERAGE = 50
 
@@ -127,9 +129,10 @@ class Calculator:
             self.__find_elprice_region()
             # energibehov
             self.__profet_calculation()
-        self.__get_temperature_data()
-        self.__find_elprice_region()
-        self.__streamlit_heat_system_input()
+        else:
+            self.__get_temperature_data()
+            self.__find_elprice_region()
+            self.__streamlit_heat_system_input()
         self.__streamlit_demand_input()
 
 
@@ -438,6 +441,7 @@ class Calculator:
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
 
+        tickspacing = 3
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
@@ -448,12 +452,12 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, 3)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, 3)]
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
                 ))
         
         fig.update_xaxes(
-            range=[0, 31],
+            range=[0, self.BOREHOLE_SIMULATION_YEARS],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -487,6 +491,8 @@ class Calculator:
                 marker_color = "#880808",
                 name=f"Direkte elektrisk:<br>{self.__rounding_cost_plot_to_int(np.max(y_2)):,} kr".replace(",", " "),
             )])
+    
+        tickspacing = 3
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
@@ -497,12 +503,12 @@ class Calculator:
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)"),
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, 3)],
-                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, 3)]
+                tickvals = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)],
+                ticktext = [f"År {i}" for i in range(1, self.BOREHOLE_SIMULATION_YEARS + 1, tickspacing)]
                 ))
         
         fig.update_xaxes(
-            range=[0, 31],
+            range=[0, self.BOREHOLE_SIMULATION_YEARS],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -562,10 +568,21 @@ class Calculator:
     def __streamlit_adjust_input(self):
         self.progress_bar.progress(33)
         with st.form('input'):
-            self.__adjust_heat_pump_size()
+            st.write("**Energi- og effekt**")
+            self.__adjust_heat_pump_size_energy()
             self.__adjust_cop()
+            st.markdown("---")
+            st.write("**Brønn**")
+            self.__adjust_well_parameters()
+            st.markdown("---")
+            st.write("**Geologi**")
+            self.__adjust_geology_parameters()
             self.__adjust_parameters()
             st.markdown("---")
+            st.write("**Simulering**")
+            self.__adjust_simulation_parameters()
+            st.markdown("---")
+            st.write("**Andre**")
             self.__adjust_elprice()  
             self.__adjust_energymix()
             self.__adjust_interest()
@@ -576,24 +593,32 @@ class Calculator:
                                
             st.form_submit_button('Oppdater')
 
-    def __adjust_parameters(self):
-        self.NUMBER_OF_WELLS_Y = st.number_input("Antall brønner i X-retning", value = 1)
-        self.NUMBER_OF_WELLS_X = st.number_input("Antall brønner i Y-retning", value = 1)
-        self.THERMAL_CONDUCTIVITY = st.number_input("Effektiv varmeledningsevne [W/(m∙K)]", value = 3.5, step = 0.1)
+    def __adjust_well_parameters(self):
+        self.BOREHOLE_DEPTH = st.number_input("Dybde [m]", value = 300, step = 50)
         self.GROUNDWATER_TABLE = st.number_input("Grunnvannstand [m]", value = 5, step = 1)
-        #self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
+        self.BOREHOLE_DISTANCE = st.number_input("Avstand mellom brønner [m]", value = 15, step = 1)
+        self.BOREHOLE_FIELD = self.__select_borehole_field()
         
+
+    def __adjust_simulation_parameters(self):
         self.MINIMUM_TEMPERATURE = st.number_input("Minimumstemperatur (dimensjonering) [°C]", value = 0, step = 1)
-        self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 30, step = 1)
+        self.BOREHOLE_SIMULATION_YEARS = st.number_input("Simuleringsperiode [år]", value = 25, step = 5)
 
-        self.GROUND_TEMPERATURE = st.number_input("Uforstyrret temperatur (terrengnivå) [°C]", value = self.average_temperature)
+    def __adjust_geology_parameters(self):
+        self.THERMAL_CONDUCTIVITY = st.number_input("Effektiv varmeledningsevne [W/(m∙K)]", value = 3.5, step = 0.1)
         self.BOREHOLE_RESISTANCE = st.number_input("Borehullsmotstand [(m∙K)/W]", value = 0.10)
+        self.GROUND_TEMPERATURE = st.number_input("Uforstyrret temperatur (terrengnivå) [°C]", value = self.average_temperature)
+        
+        
+        #self.DEPTH_TO_BEDROCK = st.number_input("Dybde til fjell [m]", value = 10, step = 1)
 
+    def __adjust_parameters(self):
         self.MAXIMUM_DEPTH = 300
         self.COST_PER_METER = 400
         self.COST_HEAT_PUMP_PER_KW = 12000
         self.PAYMENT_TIME = 30
         self.INTEREST = 3.0
+
                 
     def __adjust_cop(self):
         space_heating_sum = np.sum(self.space_heating_demand)
@@ -644,10 +669,75 @@ class Calculator:
     def __adjust_interest(self):
         self.INTEREST = st.number_input("Lånerente [%]", min_value = 0.0, value = self.INTEREST, max_value = 10.0, step = 0.1)
         
-    def __adjust_heat_pump_size(self):
-        thermal_demand = self.dhw_demand + self.space_heating_demand
-        self.heat_pump_size = st.number_input("Varmepumpestørrelse [kW]", value=int(np.max(thermal_demand)*0.8), min_value = 1, max_value = math.ceil(np.max(thermal_demand)))
-        
+    def __adjust_heat_pump_size_energy(self):
+        thermal_demand = self.space_heating_demand + self.dhw_demand
+        energidekningsgrad = st.number_input("Energidekningsgrad [%]", value = 90, min_value = 0, max_value = 100, step = 5)
+        heat_pump_array = self.__energidekningsgrad_calculation(dekningsgrad = energidekningsgrad, timeserie = thermal_demand)
+        self.heat_pump_size = self.__rounding_to_int(np.max(heat_pump_array))
+
+    def __energidekningsgrad_calculation(self, dekningsgrad, timeserie):
+        if dekningsgrad == 100:
+            return timeserie
+        timeserie_sortert = np.sort(timeserie)
+        timeserie_sum = np.sum(timeserie)
+        timeserie_N = len(timeserie)
+        startpunkt = timeserie_N // 2
+        i = 0
+        avvik = 0.0001
+        pm = 2 + avvik
+        while abs(pm - 1) > avvik:
+            cutoff = timeserie_sortert[startpunkt]
+            timeserie_tmp = np.where(timeserie > cutoff, cutoff, timeserie)
+            beregnet_dekningsgrad = (np.sum(timeserie_tmp) / timeserie_sum) * 100
+            pm = beregnet_dekningsgrad / dekningsgrad
+            gammelt_startpunkt = startpunkt
+            if pm < 1:
+                startpunkt = startpunkt + timeserie_N // 2 ** (i + 2) - 1
+            else:
+                startpunkt = startpunkt - timeserie_N // 2 ** (i + 2) - 1
+            if startpunkt == gammelt_startpunkt:
+                break
+            i += 1
+            if i > 13:
+                break
+        return timeserie_tmp
+    
+    def __borehole_field_shape(self):
+        N_1 = st.number_input("Antall brønner (X)", value = 5, step = 1)
+        N_2 = st.number_input("Antall brønner (Y)", value = 1, step = 1)
+        N_b = N_1 * N_2
+        return N_1, N_2, N_b
+    
+    def __select_borehole_field(self):
+        B, H, D, R = self.BOREHOLE_DISTANCE, self.BOREHOLE_DEPTH, self.BOREHOLE_BURIED_DEPTH, self.BOREHOLE_RADIUS
+        selected_field = st.selectbox("Konfigurasjon", options = ["Rektangulær", "Boks", "U", "L", "Sirkulær", "Fra fil"])
+        if selected_field == "Rektangulær":
+            N_1, N_2, N_B = self.__borehole_field_shape() 
+            FIELD = gt.boreholes.rectangle_field(N_1, N_2, B, B, H, D, R)
+        if selected_field == "Boks": 
+            N_1, N_2, N_B = self.__borehole_field_shape() 
+            FIELD = gt.boreholes.box_shaped_field(N_1, N_2, B, B, H, D, R)
+        if selected_field == "U":
+            N_1, N_2, N_B = self.__borehole_field_shape() 
+            FIELD = gt.boreholes.U_shaped_field(N_1, N_2, B, B, H, D, R)
+        if selected_field == "L":
+            N_1, N_2, N_B = self.__borehole_field_shape() 
+            FIELD = gt.boreholes.L_shaped_field(N_1, N_2, B, B, H, D, R)
+        if selected_field == "Sirkulær":
+            N_B = st.number_input("Antall borehull", value = 5, step = 1)
+            FIELD = gt.boreholes.circle_field(N_B, B, H, D, R)
+        if selected_field == "Fra fil":
+            file = st.file_uploader("Last opp koordinater i CSV")
+            df = pd.read_excel(file)
+            pos = []
+            for i in range(0, len(df)):
+                x = df['x'][i]
+                y = df['y'][i]
+                pos.append((x,y))
+            FIELD = [gt.boreholes.Borehole(H, D, self.R_B, x, y, 0, 0) for (x, y) in pos]
+            FIELD = gt.boreholes.remove_duplicates(FIELD, disp=True)
+        #st.pyplot(gt.boreholes.visualize_field(FIELD))
+        return FIELD
         
     def borehole_calculation(self):
         # energy
@@ -667,7 +757,8 @@ class Calculator:
         #i = self.__rounding_to_int(np.sum(self.delivered_from_wells_series)/80/300)
         #self.borehole_depth = self.MAXIMUM_DEPTH + 1
         #while self.borehole_depth >= self.MAXIMUM_DEPTH:
-        borefield_gt = gt.boreholes.rectangle_field(N_1 = self.NUMBER_OF_WELLS_X, N_2 = self.NUMBER_OF_WELLS_Y, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
+        #borefield_gt = gt.boreholes.rectangle_field(N_1 = self.NUMBER_OF_WELLS_X, N_2 = self.NUMBER_OF_WELLS_Y, B_1 = 15, B_2 = 15, H = 100, D = self.BOREHOLE_BURIED_DEPTH, r_b = self.BOREHOLE_RADIUS)
+        borefield_gt = self.BOREHOLE_FIELD
         borefield.set_borefield(borefield_gt)         
         self.borehole_depth = borefield.size(L4_sizing=True, use_constant_Tg = False) + self.GROUNDWATER_TABLE
         self.progress_bar.progress(66)
@@ -701,7 +792,7 @@ class Calculator:
                 hoverinfo='skip',
                 stackgroup="one",
                 fill="tonexty",
-                line=dict(width=0, color="#a23f47"),
+                line=dict(width=0, color="#1d3c34"),
                 name=f"Strøm til varmepumpe:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
                     ",", " "
                 ))
@@ -725,7 +816,7 @@ class Calculator:
                 hoverinfo='skip',
                 stackgroup="one",
                 fill="tonexty",
-                line=dict(width=0, color="#e1b1b5"),
+                line=dict(width=0, color="#FFC358"),
                 name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
                     ",", " "
                 ))
@@ -770,7 +861,7 @@ class Calculator:
                 hoverinfo='skip',
                 stackgroup="one",
                 fill="tonexty",
-                line=dict(width=0, color="#a23f47"),
+                line=dict(width=0, color="#1d3c34"),
                 name=f"Strøm til varmepumpe:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
                     ",", " "
                 ))
@@ -794,7 +885,7 @@ class Calculator:
                 hoverinfo='skip',
                 stackgroup="one",
                 fill="tonexty",
-                line=dict(width=0, color="#e1b1b5"),
+                line=dict(width=0, color="#FFC358"),
                 name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
                     ",", " "
                 ))
@@ -837,6 +928,8 @@ class Calculator:
             ))
            
         fig.update_layout(legend=dict(itemsizing='constant'))
+        tickspacing = 5
+        tickrange = self.__rounding_to_int(self.BOREHOLE_SIMULATION_YEARS/tickspacing)
         fig.update_layout(
             margin=dict(l=50,r=50,b=10,t=10,pad=10),
             yaxis_title="Gjennomsnittlig kollektorvæsketemperatur [°C]",
@@ -844,12 +937,12 @@ class Calculator:
             barmode="stack",
             xaxis = dict(
                 tickmode = 'array',
-                tickvals = [8760 * 5, 8760 * 10, 8760 * 15, 8760 * 20, 8760 * 25, 8760 * 30],
-                ticktext = ["År 5", "År 10", "År 15", "År 20", "År 25", "År 30"]
+                tickvals = [8760 * (i + 1) * tickspacing for i in range(tickrange)],
+                ticktext = [f"År {(i + 1) * tickspacing}" for i in range(tickrange)]
                 ))
         
         fig.update_xaxes(
-            range=[0, 8760 * 31],
+            range=[0, 8760 * self.BOREHOLE_SIMULATION_YEARS],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
@@ -888,11 +981,9 @@ class Calculator:
                 self.__render_svg_metric(svg, "Varmepumpestørrelse", f"{self.heat_pump_size} kW")
             
             with st.expander("Mer om brønndybde og varmepumpestørrelse", expanded = True):
-                st.write(""" Vi har gjort en forenklet beregning for å dimensjonere et bergvarmeanlegg med 
-                energibrønn og varmepumpe for ditt bygg. Dybde på energibrønn og størrelse på varmepumpe 
-                beregnes ut ifra et anslått oppvarmingsbehov for byggen din og antakelser om 
-                egenskapene til berggrunnen der du bor. Varmepumpestørrelsen gjelder on/off 
-                og ikke varmepumper med inverterstyrt kompressor.""")
+                st.write(f"**Det er totalt {len(self.BOREHOLE_FIELD)} brønner**")
+
+                st.pyplot(gt.boreholes.visualize_field(borefield = self.BOREHOLE_FIELD))
                 
                 chart_df = pd.DataFrame({
                     "Strøm til VP" : self.compressor_series,
@@ -924,10 +1015,7 @@ class Calculator:
                 })
                 with chart_container(chart_df):
                     st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, )
-            
-                if self.number_of_boreholes > 1:
-                    st.info(f"Det må være minimum 15 meter avstand mellom brønnene. Dersom de plasseres nærmere vil ytelsen til brønnene bli dårligere.", icon="📐")
-                
+                  
         
     def environmental_results(self):
         with st.container():
