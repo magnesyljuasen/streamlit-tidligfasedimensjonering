@@ -343,6 +343,10 @@ class Calculator:
             self.heat_pump_cost = 120000
         self.investment_cost = self.geoenergy_investment_cost + self.heat_pump_cost + self.waterborne_heat_cost
 
+        with st.sidebar:
+            st.write("**Investeringskostnad**")
+            self.investment_cost = st.number_input("Juster investeringskostnad", value = self.investment_cost, step = 50000)
+
         # -- driftskostnader
         self.direct_el_operation_cost = (self.dhw_demand + self.space_heating_demand) * self.elprice # kostnad direkte elektrisk
         self.geoenergy_operation_cost = (self.compressor_series + self.peak_series) * self.elprice # kostnad grunnvarme 
