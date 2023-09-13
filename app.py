@@ -488,7 +488,7 @@ class Calculator:
             mirror=True
         )
         fig.update_layout(separators="* .*")
-        fig.write_image(r"src/data/images/lån.svg")
+        #fig.write_image(r"src/data/images/lån.svg")
         return fig
     
     def __plot_costs_investment(self):
@@ -547,7 +547,7 @@ class Calculator:
             mirror=True
         )
         fig.update_layout(separators="* .*")
-        fig.write_image(r"src/data/images/investering.svg")
+        #fig.write_image(r"src/data/images/investering.svg")
         return fig
         
     def __plot_environmental(self):
@@ -566,7 +566,7 @@ class Calculator:
             )
 
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
-            fig.write_image(r"src/data/images/miljø_1.svg")
+            #fig.write_image(r"src/data/images/miljø_1.svg")
         with col2:
             source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#1d3c34'], hole = 0.4)
@@ -581,7 +581,7 @@ class Calculator:
                 autosize=True,
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
-            fig.write_image(r"src/data/images/miljø_2.svg")
+            #fig.write_image(r"src/data/images/miljø_2.svg")
 
     def streamlit_calculations(self):
         with st.sidebar:
@@ -897,7 +897,7 @@ class Calculator:
             gridcolor="lightgrey",
             mirror=True
         )
-        fig.write_image(r"src/data/images/behov_timeplot.svg")
+        #fig.write_image(r"src/data/images/behov_timeplot.svg")
         return fig
     
     def __plot_gshp_delivered_varighetskurve(self):
@@ -971,7 +971,7 @@ class Calculator:
             gridcolor="lightgrey",
             mirror=True
         )
-        fig.write_image(r"src/data/images/behov_varighetskurve.svg")
+        #fig.write_image(r"src/data/images/behov_varighetskurve.svg")
         return fig
     
     def __plot_borehole_temperature(self):
@@ -1024,7 +1024,7 @@ class Calculator:
             gridcolor="lightgrey",
             mirror=True
         )
-        fig.write_image(r"src/data/images/kollektorvæsketmperatur.svg")
+        #fig.write_image(r"src/data/images/kollektorvæsketmperatur.svg")
         return fig
     
     def __rounding_to_int(self, number):
