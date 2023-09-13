@@ -6,7 +6,6 @@ import numpy as np
 import requests
 from streamlit_searchbox import st_searchbox
 from streamlit_extras.no_default_selectbox import selectbox
-from PIL import Image
 import mpu
 import pandas as pd
 from shapely.geometry import Point, shape
