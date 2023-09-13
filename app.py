@@ -1061,7 +1061,7 @@ class Calculator:
                     "Spisslast" : self.peak_series
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, config = {'displayModeBar': False})
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered(), use_container_width=True, )#config = {'displayModeBar': False})
 
                 chart_df = pd.DataFrame({
                     "Strøm til VP" : np.sort(self.compressor_series)[::-1],
@@ -1069,14 +1069,14 @@ class Calculator:
                     "Spisslast" : np.sort(self.peak_series)[::-1]
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered_varighetskurve(), use_container_width=True, config = {'displayModeBar': False})
+                    st.plotly_chart(figure_or_data = self.__plot_gshp_delivered_varighetskurve(), use_container_width=True, )#config = {'displayModeBar': False})
                 
                 
                 chart_df = pd.DataFrame({
                     "Gjennomsnittlig kollektorvæsketemperatur" : self.borehole_temperature_arr,
                 })
                 with chart_container(chart_df):
-                    st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, config = {'displayModeBar': False})
+                    st.plotly_chart(figure_or_data = self.__plot_borehole_temperature(), use_container_width=True, )#config = {'displayModeBar': False})
                 
                 if self.number_of_boreholes > 1:
                     energy_well_text = "energibrønnene"
@@ -1136,7 +1136,7 @@ class Calculator:
                     st.write(f"- • Væske-vann-varmepumpe: {self.__rounding_costs_to_int(self.heat_pump_cost):,} kr".replace(",", " "))
                     st.write("")
                           
-                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, config = {'displayModeBar': False})
+                    st.plotly_chart(figure_or_data = self.__plot_costs_investment(), use_container_width=True, )#config = {'displayModeBar': False})
 
             with tab2:
                 # lån
