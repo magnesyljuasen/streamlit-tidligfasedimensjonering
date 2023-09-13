@@ -194,7 +194,7 @@ class Calculator:
             self.address_postcode = selected_adr[3]
         else:
             #st_lottie("src/csv/house.json")
-            image = Image.open('src\data\figures\Ordinary day-amico.svg')
+            image = Image.open('src/data/figures/Ordinary day-amico.svg')
             #image = Image.open("src/data/figures/nylogo.svg")
             st.image(image)
             st.stop()
