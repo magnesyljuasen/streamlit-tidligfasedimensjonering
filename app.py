@@ -400,7 +400,7 @@ class Calculator:
         fig["data"][0]["showlegend"] = True
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
-            margin=dict(l=50,r=50,b=10,t=10,pad=0),
+            argin=dict(l=10,r=10,b=50,t=50,pad=10),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             plot_bgcolor="white",
             legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
@@ -454,7 +454,7 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             autosize=True,
-            margin=dict(l=0,r=0,b=10,t=10,pad=0),
+            margin=dict(l=10,r=10,b=70,t=70,pad=0),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
@@ -509,7 +509,7 @@ class Calculator:
         fig.update_layout(legend=dict(itemsizing='constant'))
         fig.update_layout(
             autosize=True,
-            margin=dict(l=0,r=0,b=10,t=10,pad=0),
+            margin=dict(l=10,r=10,b=70,t=70,pad=10),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
             xaxis_title=dict(text = "År", font = dict(size = 20)),
             plot_bgcolor="white",
@@ -857,7 +857,7 @@ class Calculator:
 
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
-        margin=dict(l=50,r=50,b=10,t=10,pad=0),
+        margin=dict(l=10,r=10,b=70,t=70,pad=0),
         yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
         plot_bgcolor="white",
         legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
@@ -929,7 +929,7 @@ class Calculator:
 
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
-        margin=dict(l=50,r=50,b=10,t=10,pad=0),
+        margin=dict(l=10,r=10,b=70,t=70,pad=0),
         yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
         xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 20)),
         plot_bgcolor="white",
@@ -970,9 +970,9 @@ class Calculator:
         tickspacing = 5
         tickrange = self.__rounding_to_int(self.BOREHOLE_SIMULATION_YEARS/tickspacing)
         fig.update_layout(
-            margin=dict(l=50,r=50,b=10,t=10,pad=10),
-            yaxis_title=dict(text = "Gjennomsnittlig kollektorvæsketemperatur [°C]", font = dict(size = 20)),
-            xaxis_title=dict(text = "År", font = dict(size = 20)),
+            margin=dict(l=10,r=10,b=70,t=70,pad=0),
+            yaxis_title=dict(text = f"<b><sub>Gjennomsnittlig <br>kollektorvæsketemperatur [°C] </b>", font = dict(size = 24)),
+            xaxis_title=dict(text = "<b><sub>År</b>", font = dict(size = 24)),
             plot_bgcolor="white",
             barmode="stack",
             yaxis = dict(tickfont = dict(size=20)),
@@ -992,6 +992,7 @@ class Calculator:
         fig.update_yaxes(
             range=[self.YMIN_BOREHOLE, self.YMAX_BOREHOLE],
             ticks="outside",
+            nticks=10,
             linecolor="black",
             gridcolor="lightgrey",
         )
