@@ -600,6 +600,9 @@ class Calculator:
             st.write("**Simulering**")
             self.__adjust_simulation_parameters()
             st.markdown("---")
+            st.write("**Plot**")
+            self.__adjust_plot()
+            st.markdown("---")
             st.write("**Andre**")
             self.__adjust_elprice()  
             self.__adjust_energymix()
@@ -611,6 +614,9 @@ class Calculator:
                                
             st.form_submit_button('Oppdater')
 
+    def __adjust_plot(self):
+        self.YMAX_BOREHOLE = st.number_input("Ymaks", value = 16)
+        self.YMIN_BOREHOLE = st.number_input("Ymin", value = -2)
 
     def __adjust_well_parameters(self):
         self.BOREHOLE_DEPTH = st.number_input("Dybde [m]", value = 300, step = 50)
@@ -984,7 +990,7 @@ class Calculator:
             gridcolor="lightgrey",
         )
         fig.update_yaxes(
-            range=[-2, 16],
+            range=[self.YMIN_BOREHOLE, self.YMAX_BOREHOLE],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
