@@ -22,6 +22,10 @@ from plotly import graph_objects as go
 import plotly.express as px
 import datetime
 from streamlit_extras.chart_container import chart_container
+import os
+import shutil
+import tempfile
+import zipfile
 
 
 class Calculator:
@@ -190,8 +194,8 @@ class Calculator:
             self.address_postcode = selected_adr[3]
         else:
             #st_lottie("src/csv/house.json")
-            image = Image.open('src/data/figures/Ordinary day-amico.png')
-            #image = Image.open("src/data/figures/nylogo.png")
+            image = Image.open('src/data/figures/Ordinary day-amico.svg')
+            #image = Image.open("src/data/figures/nylogo.svg")
             st.image(image)
             st.stop()
             
@@ -318,7 +322,7 @@ class Calculator:
         self.electric_demand = self.building_area * np.array(electric_demand_series)
     
     def __streamlit_sidebar_settings(self):
-        #image = Image.open("src/data/figures/bergvarmekalkulatoren_logo_blå.png")
+        #image = Image.open("src/data/figures/bergvarmekalkulatoren_logo_blå.svg")
         #st.image(image)
         st.header("Forutsetninger")
         #st.write("Her kan du justere forutsetningene som ligger til grunn for beregningene.")
@@ -398,7 +402,7 @@ class Calculator:
             )
         )
         fig["data"][0]["showlegend"] = True
-        fig.update_layout(legend=dict(itemsizing='constant'))
+        
         fig.update_layout(
             argin=dict(l=10,r=10,b=50,t=50,pad=10),
             yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
@@ -451,17 +455,19 @@ class Calculator:
 
         tickspacing = 5
         fig["data"][0]["showlegend"] = True
-        fig.update_layout(legend=dict(itemsizing='constant'))
+        
         fig.update_layout(
-            autosize=True,
-            margin=dict(l=10,r=10,b=70,t=70,pad=0),
-            yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
-            xaxis_title=dict(text = "År", font = dict(size = 20)),
+            font_family="Avenir Next LT Pro",
+            font_color="black",
+            width = 1600,
+            height = 900,
+            yaxis_title=dict(text = f"Oppvarmingskostnader [kr]", font = dict(size = 28)),
+            xaxis_title=dict(text = "År", font = dict(size = 28)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
-            yaxis = dict(tickfont = dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
+            yaxis = dict(tickfont = dict(size=28)),
             xaxis = dict(
-                tickfont = dict(size=20),
+                tickfont = dict(size=28),
                 tickmode = 'array',
                 tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)],
                 ticktext = [f"{i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)]
@@ -472,15 +478,17 @@ class Calculator:
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_yaxes(
             tickformat=",",
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_layout(separators="* .*")
-        #fig.write_image("src/data/images/lån.svg")
+        fig.write_image("src/data/images/lån.svg")
         return fig
     
     def __plot_costs_investment(self):
@@ -506,17 +514,19 @@ class Calculator:
     
         tickspacing = 5
         fig["data"][0]["showlegend"] = True
-        fig.update_layout(legend=dict(itemsizing='constant'))
+        
         fig.update_layout(
-            autosize=True,
-            margin=dict(l=10,r=10,b=70,t=70,pad=10),
-            yaxis_title=dict(text = "Oppvarmingskostnader [kr]", font = dict(size = 20)),
-            xaxis_title=dict(text = "År", font = dict(size = 20)),
+            font_family="Avenir Next LT Pro",
+            font_color="black",
+            width = 1600,
+            height = 900,
+            yaxis_title=dict(text = f"Oppvarmingskostnader [kr]", font = dict(size = 28)),
+            xaxis_title=dict(text = "År", font = dict(size = 28)),
             plot_bgcolor="white",
-            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
-            yaxis = dict(tickfont = dict(size=20)),
+            legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
+            yaxis = dict(tickfont = dict(size=28)),
             xaxis = dict(
-                tickfont = dict(size=20),
+                tickfont = dict(size=28),
                 tickmode = 'array',
                 tickvals = [i for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)],
                 ticktext = [f"{i}" for i in range(0, self.BOREHOLE_SIMULATION_YEARS, tickspacing)]
@@ -527,15 +537,17 @@ class Calculator:
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_yaxes(
             tickformat=",",
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_layout(separators="* .*")
-        #fig.write_image("src/data/images/investering.svg")
+        fig.write_image("src/data/images/investering.svg")
         return fig
         
     def __plot_environmental(self):
@@ -554,7 +566,7 @@ class Calculator:
             )
 
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
-            #fig.write_image("src/data/images/miljø_1.svg")
+            fig.write_image("src/data/images/miljø_1.svg")
         with col2:
             source = pd.DataFrame({"label" : [f'Strøm: {direct_el_emmision:,} kWh/år'.replace(","," ")], "value": [direct_el_emmision]})
             fig = px.pie(source, names='label', values='value', color_discrete_sequence = ['#1d3c34'], hole = 0.4)
@@ -569,7 +581,7 @@ class Calculator:
                 autosize=True,
             )
             st.plotly_chart(figure_or_data = fig, use_container_width=True, config = {'displayModeBar': False}, )
-            #fig.write_image("src/data/images/miljø_2.svg")
+            fig.write_image("src/data/images/miljø_2.svg")
 
     def streamlit_calculations(self):
         with st.sidebar:
@@ -857,14 +869,17 @@ class Calculator:
 
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
-        margin=dict(l=10,r=10,b=70,t=70,pad=0),
-        yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
+        font_family="Avenir Next LT Pro",
+        font_color="black",
+        width = 1600,
+        height = 900,
+        yaxis_title=dict(text = f"Effekt [kW]", font = dict(size = 28)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
         barmode="stack",
-        yaxis = dict(tickfont = dict(size=20)),
+        yaxis = dict(tickfont = dict(size=28)),
         xaxis = dict(
-                tickfont = dict(size=20),
+                tickfont = dict(size=28),
                 tickmode = 'array',
                 tickvals = [0, 24 * (31), 24 * (31 + 28), 24 * (31 + 28 + 31), 24 * (31 + 28 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31)],
                 ticktext = ["1.jan", "", "1.mar", "", "1.mai", "", "1.jul", "", "1.sep", "", "1.nov", "", "1.jan"]
@@ -874,13 +889,15 @@ class Calculator:
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_yaxes(
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
-        #fig.write_image("src/data/images/behov_timeplot.svg")
+        fig.write_image("src/data/images/behov_timeplot.svg")
         return fig
     
     def __plot_gshp_delivered_varighetskurve(self):
@@ -929,27 +946,32 @@ class Calculator:
 
         fig["data"][0]["showlegend"] = True
         fig.update_layout(
-        margin=dict(l=10,r=10,b=70,t=70,pad=0),
-        yaxis_title=dict(text = "Effekt [kW]", font = dict(size = 20)),
-        xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 20)),
+        font_family="Avenir Next LT Pro",
+        font_color="black",
+        width = 1600,
+        height = 900,
+        yaxis_title=dict(text = f"Effekt [kW]", font = dict(size = 28)),
+        xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 28)),
         plot_bgcolor="white",
-        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=16)),
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
         barmode="stack",
-        yaxis = dict(tickfont = dict(size=20)),
-        xaxis = dict(tickfont = dict(size=20)))
+        yaxis = dict(tickfont = dict(size=28)),
+        xaxis = dict(tickfont = dict(size=28)))
 
         fig.update_xaxes(
             range=[0, 8760],
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_yaxes(
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
-        #fig.write_image("src/data/images/behov_varighetskurve.svg")
+        fig.write_image("src/data/images/behov_varighetskurve.svg")
         return fig
     
     def __plot_borehole_temperature(self):
@@ -966,18 +988,22 @@ class Calculator:
                 line=dict(width=1, color="#1d3c34"),
             ))
            
-        fig.update_layout(legend=dict(itemsizing='constant'))
+        
         tickspacing = 5
         tickrange = self.__rounding_to_int(self.BOREHOLE_SIMULATION_YEARS/tickspacing)
+       
         fig.update_layout(
-            margin=dict(l=10,r=10,b=70,t=70,pad=0),
-            yaxis_title=dict(text = f"<b><sub>Gjennomsnittlig <br>kollektorvæsketemperatur [°C] </b>", font = dict(size = 24)),
-            xaxis_title=dict(text = "<b><sub>År</b>", font = dict(size = 24)),
+            font_family="Avenir Next LT Pro",
+            font_color="black",
+            width = 1600,
+            height = 900,
+            yaxis_title=dict(text = f"Gjennomsnittlig kollektorvæsketemperatur [°C]", font = dict(size = 28)),
+            xaxis_title=dict(text = "År", font = dict(size = 28)),
             plot_bgcolor="white",
             barmode="stack",
-            yaxis = dict(tickfont = dict(size=20)),
+            yaxis = dict(tickfont = dict(size=28)),
             xaxis = dict(
-                tickfont = dict(size=20),
+                tickfont = dict(size=28),
                 tickmode = 'array',
                 tickvals = [8760 * (i + 1) * tickspacing for i in range(tickrange)],
                 ticktext = [f"{(i + 1) * tickspacing}" for i in range(tickrange)]
@@ -988,6 +1014,7 @@ class Calculator:
             ticks="outside",
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
         fig.update_yaxes(
             range=[self.YMIN_BOREHOLE, self.YMAX_BOREHOLE],
@@ -995,8 +1022,9 @@ class Calculator:
             nticks=10,
             linecolor="black",
             gridcolor="lightgrey",
+            mirror=True
         )
-        #fig.write_image("src/data/images/kollektorvæsketmperatur.svg")
+        fig.write_image("src/data/images/kollektorvæsketmperatur.svg")
         return fig
     
     def __rounding_to_int(self, number):
@@ -1142,6 +1170,36 @@ class Calculator:
             </style>
             '''
         st.markdown(hide_img_fs, unsafe_allow_html=True)
+
+    def streamlit_download_images(self):
+        st.header("Last ned figurer")
+        # Define the folder containing SVG files
+        svg_folder = 'src/data/images'
+
+        # List SVG files in the folder
+        svg_files = [f for f in os.listdir(svg_folder) if f.endswith('.svg')]
+
+        if not svg_files:
+            st.warning("No SVG files found in the folder.")
+            return
+
+        # Create a temporary directory to store the SVG files
+        temp_dir = tempfile.mkdtemp()
+        
+        # Copy SVG files to the temporary directory
+        for svg_file in svg_files:
+            shutil.copy(os.path.join(svg_folder, svg_file), os.path.join(temp_dir, svg_file))
+
+        # Create a ZIP file containing the SVG files
+        with zipfile.ZipFile('svg_folder.zip', 'w') as zipf:
+            for root, _, files in os.walk(temp_dir):
+                for file in files:
+                    zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), temp_dir))
+
+        # Offer the ZIP file for download
+        with open('svg_folder.zip', 'rb') as f:
+            st.download_button("Last ned figurer (zip)", f, key='download_button')
+
         
     def novap(self):
         st.header("Veien videre")
@@ -1188,6 +1246,7 @@ class Calculator:
         # ferdig
         self.progress_bar.progress(100)
         self.streamlit_results()
+        self.streamlit_download_images()
         #self.novap()
         
 if __name__ == '__main__':
