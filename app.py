@@ -125,6 +125,7 @@ class Calculator:
             #with c1:
             #    state = self.__streamlit_waterborne_heat_input()
             #with c2:
+            self.__streamlit_building_type_input()
             self.__streamlit_heat_system_input()
             #if state == False:
             #    st.stop()
@@ -231,18 +232,31 @@ class Calculator:
         #with c1:
         self.building_area = self.__area_input()
 
-        
+    def __streamlit_building_type_input(self):
+        option_list = ["Hus", "Leilighet", "Kontor", "Butikk", "Hotell", "Barnehage", "Skole", "Universitet", "Kultur", "Sykehjem", "Andre"]
+        option_list_map_reversed = {
+            "Hus": "A",
+            "Leilighet": "B",
+            "Kontor": "C",
+            "Butikk": "D",
+            "Hotell": "E",
+            "Barnehage": "F",
+            "Skole": "G",
+            "Universitet": "H",
+            "Kultur": "I",
+            "Sykehjem": "J",
+            "Andre": "L"
+        }
+        selected = st.selectbox(f'Type bygg', options=option_list)
+        selected = option_list_map_reversed[selected]
+        if len(selected) > 0:
+            self.BUILDING_TYPE = selected
+        else:
+            st.stop()
+
     def __streamlit_heat_system_input(self):
         option_list = ['Gulvvarme', 'Radiator', 'Varmtvann']
-        #c1, c2 = st.columns(2)
-        #with c1:
-        #if self.waterborne_heat_cost == 0:
-        #    text = "type"
-        #else:
-        #    text = "ønsket"
         selected = st.multiselect(f'Type vannbårent varmesystem (COP)', options=option_list, help = "Type varmegiver bestemmer energieffektiviteten til systemet")
-        #with c2:
-        #st.info('Type varmegiver bestemmer energieffektiviteten til systemet')
         if len(selected) > 0:
             self.selected_cop_option = selected
         else:
@@ -367,7 +381,159 @@ class Calculator:
         self.short_term_loan = self.__rounding_to_int(self.savings_operation_cost - self.loan_cost_yearly)
         self.long_term_loan = self.__rounding_to_int((self.savings_operation_cost - self.loan_cost_yearly) * self.BOREHOLE_SIMULATION_YEARS)
         
+    def __plot_demands(self):
+        y_arr_1 = self.dhw_demand
+        y_arr_2 = self.space_heating_demand
+        y_arr_3 = self.electric_demand
+        x_arr = np.array(range(0, len(self.electric_demand)))
+        fig = go.Figure()
         
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_1,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#1d3c34"),
+                name=f"Tappevann:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_2,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#48a23f"),
+                name=f"Romoppvarming:<br>{self.__rounding_to_int(np.sum(y_arr_2)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_2)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_3,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#FFC358"),
+                name=f"Elspesifikt:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(
+        font_family="Avenir Next LT Pro",
+        font_color="black",
+        width = 1600,
+        height = 900,
+        yaxis_title=dict(text = f"Effekt [kW]", font = dict(size = 28)),
+        plot_bgcolor="white",
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
+        barmode="stack",
+        yaxis = dict(tickfont = dict(size=28)),
+        xaxis = dict(
+                tickfont = dict(size=28),
+                tickmode = 'array',
+                tickvals = [0, 24 * (31), 24 * (31 + 28), 24 * (31 + 28 + 31), 24 * (31 + 28 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30), 24 * (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31)],
+                ticktext = ["1.jan", "", "1.mar", "", "1.mai", "", "1.jul", "", "1.sep", "", "1.nov", "", "1.jan"]
+                ))
+        fig.update_xaxes(
+            range=[0, 8760],
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+            mirror=True
+        )
+        fig.update_yaxes(
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+            mirror=True
+        )
+        #fig.write_image("src/data/images/behov_timeplot.svg", )
+        return fig
+    
+    def __plot_gshp_delivered_varighetskurve(self):
+        y_arr_1 = np.sort(self.compressor_series)[::-1]
+        y_arr_2 = np.sort(self.delivered_from_wells_series)[::-1]
+        y_arr_3 = np.sort(self.peak_series)[::-1]
+        x_arr = np.array(range(0, len(self.delivered_from_wells_series)))
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_1,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#1d3c34"),
+                name=f"Strøm til varmepumpe:<br>{self.__rounding_to_int(np.sum(y_arr_1)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_1)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_2,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#48a23f"),
+                name=f"Levert fra brønner:<br>{self.__rounding_to_int(np.sum(y_arr_2)):,} kWh/år | {self.__rounding_to_int(np.max(y_arr_2)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_arr,
+                y=y_arr_3,
+                hoverinfo='skip',
+                stackgroup="one",
+                fill="tonexty",
+                line=dict(width=0, color="#FFC358"),
+                name=f"Spisslast:<br>{int(np.sum(y_arr_3)):,} kWh/år | {int(np.max(y_arr_3)):,} kW".replace(
+                    ",", " "
+                ))
+        )
+
+        fig["data"][0]["showlegend"] = True
+        fig.update_layout(
+        font_family="Avenir Next LT Pro",
+        font_color="black",
+        width = 1600,
+        height = 900,
+        yaxis_title=dict(text = f"Effekt [kW]", font = dict(size = 28)),
+        xaxis_title=dict(text = "Varighet [timer]", font = dict(size = 28)),
+        plot_bgcolor="white",
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0)", font=dict(size=28)),
+        barmode="stack",
+        yaxis = dict(tickfont = dict(size=28)),
+        xaxis = dict(tickfont = dict(size=28)))
+
+        fig.update_xaxes(
+            range=[0, 8760],
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+            mirror=True
+        )
+        fig.update_yaxes(
+            ticks="outside",
+            linecolor="black",
+            gridcolor="lightgrey",
+            mirror=True
+        )
+        #fig.write_image("src/data/images/behov_varighetskurve.svg")
+        return fig
+
+
+
     def __plot_costs(self):
         x = [i for i in range(1, self.BOREHOLE_SIMULATION_YEARS)]
         y_1 = np.sum(self.geoenergy_operation_cost) * np.array(x) + self.investment_cost
@@ -1058,6 +1224,14 @@ class Calculator:
             
             with st.expander("Mer om brønndybde og varmepumpestørrelse", expanded = True):
                 st.pyplot(gt.boreholes.visualize_field(borefield = self.BOREHOLE_FIELD))
+                
+                chart_df = pd.DataFrame({
+                    "Tappevann" : self.dhw_demand,
+                    "Romoppvarming" : self.space_heating_demand,
+                    "Elspesifikt" : self.electric_demand
+                })
+                with chart_container(chart_df):
+                    st.plotly_chart(figure_or_data = self.__plot_demands(), use_container_width=True, )#config = {'displayModeBar': False})
                 
                 chart_df = pd.DataFrame({
                     "Strøm til VP" : self.compressor_series,
