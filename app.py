@@ -1249,7 +1249,7 @@ class Calculator:
         # ferdig
         self.progress_bar.progress(100)
         self.streamlit_results()
-        self.streamlit_download_images()
+        #self.streamlit_download_images()
         #self.novap()
         
 if __name__ == '__main__':
