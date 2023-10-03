@@ -456,7 +456,7 @@ class Calculator:
             gridcolor="lightgrey",
             mirror=True
         )
-        fig.write_image("src/data/images/behov_timeplot.svg", )
+        #fig.write_image("src/data/images/behov_timeplot.svg", )
         return fig
     
     def __plot_gshp_delivered_varighetskurve(self):
