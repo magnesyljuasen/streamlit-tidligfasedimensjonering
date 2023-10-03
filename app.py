@@ -34,7 +34,8 @@ class Calculator:
         self.DEPTH_TO_BEDROCK = 10
         self.BUILDING_TYPE = "A"
         self.BUILDING_STANDARD = "X"
-        
+        self.electric_demand = np.zeros(8760)
+
         self.MINIMUM_TEMPERATURE = 0
         self.MAXIMUM_TEMPERATURE = 16
         self.BOREHOLE_BURIED_DEPTH = 10
@@ -455,7 +456,7 @@ class Calculator:
             gridcolor="lightgrey",
             mirror=True
         )
-        #fig.write_image("src/data/images/behov_timeplot.svg", )
+        fig.write_image("src/data/images/behov_timeplot.svg", )
         return fig
     
     def __plot_gshp_delivered_varighetskurve(self):
