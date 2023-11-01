@@ -868,6 +868,8 @@ class Calculator:
             self.elprice = spotprice_arr
         else:
             self.elprice = float(selected_year)
+        extra_price = st.number_input("Fast påslag [kr/kWh]?", min_value = 0.0, value = 0.0, max_value = 10.0, step = 0.1)
+        self.elprice = self.elprice + extra_price
              
     def __adjust_energymix(self):
         option_list = ['Norsk', 'Norsk-europeisk', 'Europeisk']
